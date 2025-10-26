@@ -193,16 +193,14 @@
 
 						---
 						## 5.2 Diagraming for simulation modelling
-						## Graphs and networks
 						
 						<a title="Adoption_CLD.gif:Apdevries at en.wikipedia derivative work: Blleininger, CC BY-SA 3.0 &lt;http://creativecommons.org/licenses/by-sa/3.0/&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Adoption_CLD.svg"><img width="400px" alt="Adoption CLD" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Adoption_CLD.svg/512px-Adoption_CLD.svg.png?20100626011908"></a>
-						<a title="The original uploader was Apdevries at English Wikipedia., CC BY-SA 3.0 &lt;http://creativecommons.org/licenses/by-sa/3.0/&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Adoption_SFD.png"><img width="400px" alt="Adoption SFD" src="https://upload.wikimedia.org/wikipedia/commons/3/3b/Adoption_SFD.png?20140810144917"></a>
+						<a title="The original uploader was Apdevries at English Wikipedia., CC BY-SA 3.0 &lt;http://creativecommons.org/licenses/by-sa/3.0/&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Adoption_SFD.png"><img width="300px" alt="Adoption SFD" src="https://upload.wikimedia.org/wikipedia/commons/3/3b/Adoption_SFD.png?20140810144917"></a>
 						
 						[Causal diagrams and "stocks and flows" or Forrester diagrams](https://en.wikipedia.org/wiki/System_dynamics): helpful in relating the change of aggregate variables (stocks) to parameters and other variables (flows).  
 						
 						---
 						## 5.2 Diagraming for simulation modelling
-						## Graphs and networks
 						
 						<a title="svg by Booyabazookaoriginal png by Wapcaplet, CC BY-SA 3.0 &lt;http://creativecommons.org/licenses/by-sa/3.0/&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:LampFlowchart.svg"><img width="200px" alt="A simple flowchart for troubleshooting a broken lamp." src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/LampFlowchart.svg/256px-LampFlowchart.svg.png?20220918192641"></a>
 
@@ -211,11 +209,12 @@
 						---
 						## 5.3 Designing an explanatory mechanism
 
-						- **not** a "recipe" for a model, but a **guide** to the model design process
-						- by far the most important step in the modelling process
+						- **not** a "recipe" for a full-developed model, but a **guide** to the model design process
+						- the most important step in the modelling process
 						- skill that improves with practice
-						- be careful when using "standard" models, they may not be appropriate as-is for your case study
+						- be careful when using "standard" models; they may not be appropriate as-is for your case study
 
+						---
 						## 6. Example: Settlement size, population and migration
 
 						(Path 2: from phenomenon to evidence and mechanism)
@@ -273,7 +272,120 @@
 						
 						criteria: **logic** and **contextual knowledge**
 						---
+						## 6.2 Towards a balance between representation and complexity
+						### Unit conversion
+
+						>settlementSize = *f*(areaPerInhabitant * population)
+
+						---
+						## 6.2 Towards a balance between representation and complexity
+						### Initial conditions and time
+
+						>population = *g*(**initialPopulation**, immigration)
+
+						>settlementSize = *f*(areaPerInhabitant * population, **time**)  
+						>population = *g*(initialPopulation, immigration, **time**)
+						>settlementSize = *f*(population, **time**)  
+						>population = *g*(initialPopulation, immigration, **time**)  
+						>immigration = *h*(immigrationRate, **time**)
+
+						---
+						## 6.2 Towards a balance between representation and complexity
+						### Updating the causal graph
+
+						<img src="assets/images/conceptual-model-example-2.png" width="400">
+						<br>
+						<span style="font-size: 0.6em">Conceptual model after adding a few parameters</span>
+
+						---
+						## 6.2 Towards a balance between representation and complexity
+						### Rationale for increasing complexity
+
+						- **Logic**: we need to be able to express the phenomenon we are interested in. (want to)
+						- **Contextual knowledge**: we need to be able to express the phenomenon in a way that is consistent with our knowledge of the world. (can do)
+
+						>Variable: it varies with time. It is part of the object of interest and its dynamics are interpreted as outputs of the phenomenon (&approx;model).  
+						>Parameter: it does not vary with time, but it can vary between instances of the phenomenon (&approx;simulation runs). It is considered as an input of the phenomenon (&approx;model).
+
+						---
+						## 6.3 Reusing consolidated structures
+
+						<img src="assets/images/conceptual-model-example-3.png" width="400">
+						<br>
+						<span style="font-size: 0.6em">Conceptual model after structure duplication</span>
+
+						---
+						## 6.4 Adding feedback loops
+
+						<img src="assets/images/conceptual-model-example-4.png" width="400">
+						<br>
+						<span style="font-size: 0.6em">Conceptual model after adding a two-variable feedback loop</span>
 						
+						><small>Population (variable) is a function (depends on) emigration (variable) as a negative term (-).</small>  
+						><small>Emigration (variable) is a function (depends on) population (variable) as a positive term (+).</small>
+
+						---
+						## 6.4 Adding feedback loops
+
+						<img src="assets/images/conceptual-model-example-5.png" width="400">
+						<br>
+						<span style="font-size: 0.6em">Conceptual model after adding a one-variable feedback loop</span>
+
+						><small>population = naturalGrowthRate * population + immigrationRate - emmigrationRate * population</small>  
+						><small>settlementSize = areaPerInhabitant * population</small>
+
+						---
+						## 6.5 Expressing conditions as logic bifurcations
+
+						1. The political relationship between this and neighbours (friendly/hostile)  
+						2. The general state of prosperity in the settlement (e.g. a combined factor of subsistence, well-being and raw material availability), summarised with a binary classification between *good* and *bad* times. 
+
+						> IF friendly AND good times THEN [...]  
+						> IF friendly AND bad times THEN [...]  
+						> IF hostile AND good times THEN [...]  
+						> IF hostile AND bad times THEN [...]  
+
+						The logic bifurcations are not part of the causal graph, but the model's logic.
+						---
+						## 6.5 Expressing conditions as logic bifurcations
+
+						<img src="assets/images/conceptual-model-example-6.png" width="500">
+						<br>
+						<span style="font-size: 0.6em">Conceptual model after adding <b>one</b> logic bifurcation</span>
+
+						---
+						## 6.5 Expressing conditions as logic bifurcations
+
+						<img src="assets/images/conceptual-model-example-7.png" width="800">
+						<br>
+						<span style="font-size: 0.6em">Conceptual model after adding <b>two</b> logic bifurcations</span>
+
+						---
+						## 6.6 Representing distributed and social mechanisms
+
+						<img src="assets/images/conceptual-model-example-8.png" width="200">
+						<br>
+						<span style="font-size: 0.6em">Conceptual model after conversion to agent-based</span>
+
+						---
+						## 6.6 Representing distributed and social mechanisms
+
+						<img src="assets/images/conceptual-model-example-9.png" width="400">
+						<br>
+						<span style="font-size: 0.6em">a tentative "reproduce" process</span>
+
+						Thinking modularly is a good way to keep the model simple and manageable.
+
+						---
+						## 7. Your turn!
+
+						(individual or group work)
+						- Pen and paper or your preferred sketching digital platform (tablet, laptop).
+						- A subject of interest in archaeology, preferably familiar to you
+						- Or a model that has been explained verbally, but never formalised (e.g. paper) 
+						
+						Remember:
+						>explanation here means that evidence is associated with a phenomenon, a process, and a mechanism (i.e., causal relationships).
 
 					</textarea>
 				</section>
