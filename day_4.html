@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="reveal.js-master/dist/reset.css">
+		<link rel="stylesheet" href="reveal.js-master/dist/reveal.css">
+		<link rel="stylesheet" href="reveal.js-master/dist/theme/white_contrast_compact_verbatim_headers_mod.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="reveal.js-master/plugin/highlight/monokai.css">
+
+		<!-- Custom modifications to structure slides -->
+		<!-- <link rel="stylesheet" href="assets/myMods.css"> -->
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section data-markdown>
+					<textarea data-template>
+						# 12 NetLogo language basics
+
+						---
+						## 12.1 Console interaction
+
+						**'Command Center'**
+						```NetLogo
+						You can do it!
+						```
+
+						---
+						## 12.1 Console interaction
+
+						<p class="fragment fade-left">
+							<img width="400" alt="Batman Slaps Robin" src="https://static0.cbrimages.com/wordpress/wp-content/uploads/2016/09/Batman-Slaps-Robin-Meme.jpg?q=50&fit=crop&w=1232&h=693&dpr=1.5">
+						</p>
+						
+						```
+						ERROR: Nothing named YOU has been defined. 
+						```
+
+						---
+						## 12.1 Console interaction
+						
+						* **Primitives**: basic building blocks
+						* **Reporters**: return a value
+						* **Commands**: do something
+						
+						---
+						## 12.2 Entities
+
+						<a title="NetLogo world and entities (Figure 2 in Izquierdo et al. 2019)" href="https://wisc.pb.unizin.org/agent-based-evolutionary-game-dynamics/"><img width="400" style="background-color: white" alt="NetLogo entities" src="https://wisc.pb.unizin.org/app/uploads/sites/28/2018/09/the-netlogo-world.png"></a>
+						<br>
+						<i style="color: grey;">NetLogo world and entities (Figure 2 in Izquierdo et al. 2019)</i>
+
+						---
+						## 12.2 Entities
+
+						* **Turtles**: unique `who` numbers
+						* **Patches**: unique `pxcor` and `pycor` coordinates
+						* **Links**: between two `turtles`
+
+						<small>**Note**: turtles and links can be created and destroyed, patches are always there.</small></small>
+
+						---
+						## 12.2 Entities
+
+						```NetLogo
+						turtle <WHO_NUMBER>
+						patch <PXCOR> <PYCOR>
+						link <WHO_NUMBER> <WHO_NUMBER>
+						```
+
+						---
+						## 12.2 Entities
+
+						```NetLogo
+						breed [<BREED_1_NAME_PLURAL> <BREED_1_NAME_SINGULAR>]
+
+						breed [<BREED_2_NAME_PLURAL> <BREED_2_NAME_SINGULAR>]
+						```
+
+						For example:
+
+						```NetLogo
+						breed [apples apple]
+
+						breed [pears pear]
+						```
+
+						---
+						## 12.2 Entities
+
+						Then, we can refer to them individually as:
+						```NetLogo
+						<BREED_1_NAME_SINGULAR> <WHO_NUMBER>
+						```
+						```NetLogo
+						pear 2
+						```
+
+						<small>**Note**: `who` numbers are unique across all turtles, including those of different breeds.</small>
+						---
+						## 12.2 Entities
+						We can also refer to them collectively as:
+						```NetLogo
+						<BREED_1_NAME_PLURAL>
+						```
+						```NetLogo
+						pears
+						```
+						or randomly as:
+						```NetLogo
+						one-of apples
+						one-of patches
+						```
+						<small>Note: `one-of` will return a random entity from the specified breed.</small>
+
+						---
+						## 12.3 Variables
+
+						```NetLogo
+						set <VARIABLE_NAME> <VALUE>
+						```
+						For example:
+						```NetLogo
+						set x 10
+						set y 20
+						```
+
+						---
+						## 12.3 Variables
+
+						- **Number** (*e.g.*, `1`, `4.5`, `1E-6`)
+						- **Boolean** (*i.e.*, `true`, `false`)
+						- **String** (effectively text, but enclosed by quote marks: *e.g.*, `"1"`, `"my value"`)
+						- `turtles`, `patches` (*i.e.*, NetLogo's computation entities)
+						- **AgentSet** (a set of either `turtles` or `patches`)
+						- **List** (a list enclosed in squared brakets with values of any kind separated by spaces: *e.g.*, `[ "1" 1 false my-agents-bunch ["my value" true 4.5] ]`)
+
+						---
+						## 12.3 Variables
+						### Variable declaration
+
+						```NetLogo
+						globals [ <GLOBAL_VARIABLE_NAME> ]
+						
+						turtles-own [ <TURTLE_VARIABLE_NAME> ]
+						
+						<BREED_1_NAME_PLURAL>-own
+						[ 
+						  <BREED_1_VARIABLE_1_NAME>
+						  <BREED_1_VARIABLE_2_NAME>
+						]
+						
+						patches-own [ <PATCHES_VARIABLE_NAME> ]
+						```
+
+						---
+						## 12.3 Variables
+						### Variable declaration
+						```NetLogo
+						globals [ x y ]
+						
+						turtles-own [ weight ]
+						
+						apples-own [ redness ]
+						```
+
+						---
+						## 12.3 Variables
+						### Variable declaration (local)
+
+						```NetLogo
+						let <VARIABLE_NAME> <VALUE>
+						```
+						For example:
+						```NetLogo
+						let freshness 100
+						```
+
+						---
+						## 12.3 Variables
+						### Variable declaration (local)
+
+						<img title="Diagram about local variables" src="https://www.researchgate.net/profile/Rama-M-A/publication/283347855/figure/fig1/AS:391464140984327@1470343732789/Global-and-local-variables-in-procedural-programming.png" width="450"><img title="Meme about local variables" src="https://i.redd.it/hqokqm85vxz81.jpg" width="300">
+						
+						<small>Source: [ResearchGate](https://www.researchgate.net/figure/Global-and-local-variables-in-procedural-programming_fig1_283347855), [Reddit](https://www.reddit.com/r/ProgrammerHumor/comments/1063697/when_you_try_to_use_a_local_variable/)</small>
+						---
+						## 12.4 Expressing equations
+						
+						* Use of common operators
+						* Parentheses for grouping
+						* Order of operations
+						
+						```NetLogo
+						set myVariable (2 + 2) * 10 / ((2 + 2) * 10)
+						```
+						---
+						## 12.4 Expressing equations
+						
+						NetLogo is very permissive with line breaks and whitespaces, and parentheses are not always strictly necessary.
+
+						```NetLogo
+						set myVariable (
+						  (
+						    (2 + 2) * 
+						    10
+						  ) / (
+						    (2 + 2) * 
+						    10
+						  )
+						)
+						```
+
+						However, it is good practice to keep different operations on different lines and use parentheses to avoid confusion.
+
+						---
+						## 12.4 Expressing equations
+						### Using variables in equations
+
+						Variables can be used in equations, as placeholders for values.
+						
+						```NetLogo
+						set myVariable 2
+						set myOtherVariable 10
+
+						<...>
+
+						let myTemporaryVariable 2 * myVariable * myOtherVariable
+
+						set myVariable myTemporaryVariable / myTemporaryVariable
+						```
+
+						## 12.5 Logical operators
+						
+
+					</textarea>
+				</section>
+			</div>
+		</div>
+
+		<script src="reveal.js-master/dist/reveal.js"></script>
+		<script src="reveal.js-master/plugin/notes/notes.js"></script>
+		<script src="reveal.js-master/plugin/markdown/markdown.js"></script>
+		<script src="reveal.js-master/plugin/highlight/highlight.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+	<div id="background-header">
+		<div style="text-align:left; position:absolute; top:3%; left: 10%; font-size:200%; color:gray; font-family: sans-serif;">
+			<i>Introduction<br>Cologne, 20th October 2025</i>
+		</div>
+		<div style="text-align:right; position:absolute; top:3%; right: 10%; font-size:200%; color:gray; font-family: sans-serif;">
+			<b>Agent-based modelling for archaeologists<br>Angourakis</b>
+		</div>
+	</div>
+</html>
