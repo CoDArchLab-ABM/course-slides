@@ -228,7 +228,7 @@
 						set myVariable 2
 						set myOtherVariable 10
 
-						<...>
+						...
 
 						let myTemporaryVariable 2 * myVariable * myOtherVariable
 
@@ -237,6 +237,217 @@
 
 						## 12.5 Logical operators
 						
+						Equalities and inequalities, returning a **Boolean** value (`true` or `false`). 
+						
+						Operators:
+
+						- `=`: "equals".  
+						- `!=`: "not equal to".  
+						- `>`: "greater than".  
+						- `>=`: "greater than or equal to".  
+						- `<`: "less than".  
+						- `<=`: "less than or equal to".
+
+						try:
+
+						```NetLogo
+						1 >= 0
+						```
+
+					    ```NetLogo
+						100 >= 100 + 1
+						```
+
+						---
+						## 12.5 Logical operators
+						
+						Cases when comparing non-numeric values:
+						Booleans:
+						```NetLogo
+						true = false ; valid
+						true >= false ; invalid
+            			```
+						Lists:
+ 						```NetLogo
+						[1 2 3] = [ 1 ] ; valid
+						[1 2 3] > [ 1 ] ; invalid
+						```
+						Strings:
+						```NetLogo
+						"apple" = "banana" ; valid
+						"apple" >= "banana" ; valid
+						```
+						Entities:
+						```NetLogo
+						patch 0 0 != patch 1 1 ; valid
+						turtle 0 < turtle 1 ; valid, but not recommended
+						patch 0 0 > patch 1 1 ; valid, but not recommended
+						```
+						---
+						## 12.6 Procedures
+
+						An action that can be performed by a turtle, patch, or observer, declared with the keyword `to` and ended with the keyword `end`.
+
+						```NetLogo
+						to <PROCEDURE_NAME>
+  							<PROCEDURE_CODE>
+						end
+						```
+
+						---
+						## 12.6 Procedures
+
+						```NetLogo
+						to hello-world
+  							print "Hello World!"
+						end
+						```
+
+						```
+						observer> hello-world
+						Hello World!
+						```
+
+						---
+						## 12.6 Procedures
+
+						Serve to group and enclose a sequence of commands that are semantically connected for the programmer
+
+						```NetLogo
+						to set-it-and-show-me
+  							let thisVariableOfMine 42
+  							print thisVariableOfMine
+						end
+						```
+
+						---
+						## 12.6 Procedures
+
+						Procedures can be called from within other procedures
+						```NetLogo
+						to <PROCEDURE NAME>
+  							<PROCEDURE_1>
+ 							<PROCEDURE_2>
+  							<PROCEDURE_3>
+  							...
+						end
+						```
+					
+						## 12.7 Logic bifurcations: `if` and `ifelse`
+
+						```NetLogo
+						if (<CONDITION_1_IS_TRUE>)
+						[
+  							<DO_ACTION_A>
+						]
+
+						ifelse (<CONDITION_2_IS_TRUE>)
+						[
+  							<DO_ACTION_B>
+						]
+						[
+  							<DO_ACTION_C>
+						]
+						```
+
+						## 12.8 Iterators (*loops*)
+
+						```NetLogo
+						while [<CONDITION_1_IS_TRUE>]
+						[
+  							<DO_ACTION>
+						]
+
+						repeat <NUMBER_OF_TIMES>
+						[
+  							<DO_ACTION>
+						]
+						```
+						Try this out in the command center:
+						```NetLogo
+						let counter 0 repeat 10 [  set counter counter + 1 ] print counter
+						```
+						
+						---
+						## 12.8 Iterators (*loops*)
+
+						A especial type of iterator abundantly used in NetLogo is `ask`. You can `ask` all or any subset of entities to perform specific commands by following the structure:
+
+						```NetLogo
+						ask <ENTITIES>
+						[ 
+  							<DO_SOMETHING>
+						]
+						```
+						Try this out in the command center:
+						```NetLogo
+						ask patches [ set pcolor blue ]
+						```
+
+						---
+						## 12.9 Entities with variables, logic operations, and procedures
+
+						```NetLogo
+						ask <BREED_1_NAME_PLURAL>
+						[ 
+  							set <BREED_1_VARIABLE_2> <VALUE>
+  							<PROCEDURE_1>
+  							<PROCEDURE_2>
+  							<PROCEDURE_3>
+						]
+						```
+
+						---
+						## 12.9 Entities with variables, logic operations, and procedures
+
+						Scope is important!
+						```NetLogo
+						ask <BREED_1_NAME_PLURAL>
+						[ 
+  							print [<BREED_1_VARIABLE_2>] of <BREED_2_NAME_SINGULAR> <WHO_NUMBER>
+						]
+						```
+						Filtering using logical operations:
+						```NetLogo
+						<TYPE_NAME_PLURAL> with [ <VARIABLE_NAME_1> > <THRESHOLD> ]
+						```
+						---
+						## 12.9 Entities with variables, logic operations, and procedures
+
+						Embedding `ask` within `ask`, and filtering oneself out using `other`:
+						```NetLogo
+						ask <BREED_1_NAME_PLURAL>
+						[ 
+  							ask other <BREED_1_NAME_PLURAL>
+  							[ 
+  								<PROCEDURE_1>
+  							]
+						]
+						```
+
+						---
+						12.9 Entities with variables, logic operations, and procedures
+
+						All this can be combined to form quite complex rules of behaviour, yet keeping itself generally readable:
+
+						```NetLogo
+						to celebrate-birthday
+
+  							ask people
+  							[
+    							if (today = my-birthday)
+    							[
+					      			ask other people with [presents > 0]
+      								[
+        								give-present
+      								]
+    							]
+  							]
+						end
+						```
+
+						---
+						## 12.10 Grid
 
 					</textarea>
 				</section>
