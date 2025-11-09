@@ -59,6 +59,15 @@
 						---
 						## 12.2 Entities
 
+						<a title="NightElfik, CC0, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:KochTurtleAnim.gif"><img width="256" alt="KochTurtleAnim" src="https://upload.wikimedia.org/wikipedia/commons/0/09/KochTurtleAnim.gif?20110330124613"></a>
+						<br>
+						<i style="color: grey;">KochTurtleAnim by NightElfik, CC0, via Wikimedia Commons</i>
+
+						<small>**Note**: "turtles" comes originally from the Logo programming language, which was designed for educational purposes in the 1960s and 1970s.</small></small>
+
+						---
+						## 12.2 Entities
+
 						* **Turtles**: unique `who` numbers
 						* **Patches**: unique `pxcor` and `pycor` coordinates
 						* **Links**: between two `turtles`
@@ -235,6 +244,7 @@
 						set myVariable myTemporaryVariable / myTemporaryVariable
 						```
 
+						---
 						## 12.5 Logical operators
 						
 						Equalities and inequalities, returning a **Boolean** value (`true` or `false`). 
@@ -254,7 +264,9 @@
 						1 >= 0
 						```
 
-					    ```NetLogo
+						or
+					    
+						```NetLogo
 						100 >= 100 + 1
 						```
 
@@ -290,7 +302,7 @@
 
 						```NetLogo
 						to <PROCEDURE_NAME>
-  							<PROCEDURE_CODE>
+							<PROCEDURE_CODE>
 						end
 						```
 
@@ -299,7 +311,7 @@
 
 						```NetLogo
 						to hello-world
-  							print "Hello World!"
+							print "Hello World!"
 						end
 						```
 
@@ -311,12 +323,12 @@
 						---
 						## 12.6 Procedures
 
-						Serve to group and enclose a sequence of commands that are semantically connected for the programmer
+						Serve to group and enclose a sequence of commands that are semantically connected
 
 						```NetLogo
 						to set-it-and-show-me
-  							let thisVariableOfMine 42
-  							print thisVariableOfMine
+							let thisVariableOfMine 42
+							print thisVariableOfMine
 						end
 						```
 
@@ -333,34 +345,36 @@
 						end
 						```
 					
+						---
 						## 12.7 Logic bifurcations: `if` and `ifelse`
 
 						```NetLogo
 						if (<CONDITION_1_IS_TRUE>)
 						[
-  							<DO_ACTION_A>
+							<DO_ACTION_A>
 						]
 
 						ifelse (<CONDITION_2_IS_TRUE>)
 						[
-  							<DO_ACTION_B>
+							<DO_ACTION_B>
 						]
 						[
-  							<DO_ACTION_C>
+							<DO_ACTION_C>
 						]
 						```
 
+						---
 						## 12.8 Iterators (*loops*)
 
 						```NetLogo
 						while [<CONDITION_1_IS_TRUE>]
 						[
-  							<DO_ACTION>
+							<DO_ACTION>
 						]
 
 						repeat <NUMBER_OF_TIMES>
 						[
-  							<DO_ACTION>
+							<DO_ACTION>
 						]
 						```
 						Try this out in the command center:
@@ -375,8 +389,8 @@
 
 						```NetLogo
 						ask <ENTITIES>
-						[ 
-  							<DO_SOMETHING>
+						[
+							<DO_SOMETHING>
 						]
 						```
 						Try this out in the command center:
@@ -389,8 +403,8 @@
 
 						```NetLogo
 						ask <BREED_1_NAME_PLURAL>
-						[ 
-  							set <BREED_1_VARIABLE_2> <VALUE>
+						[
+							set <BREED_1_VARIABLE_2> <VALUE>
   							<PROCEDURE_1>
   							<PROCEDURE_2>
   							<PROCEDURE_3>
@@ -403,8 +417,8 @@
 						Scope is important!
 						```NetLogo
 						ask <BREED_1_NAME_PLURAL>
-						[ 
-  							print [<BREED_1_VARIABLE_2>] of <BREED_2_NAME_SINGULAR> <WHO_NUMBER>
+						[
+							print [<BREED_1_VARIABLE_2>] of <BREED_2_NAME_SINGULAR> <WHO_NUMBER>
 						]
 						```
 						Filtering using logical operations:
@@ -417,37 +431,184 @@
 						Embedding `ask` within `ask`, and filtering oneself out using `other`:
 						```NetLogo
 						ask <BREED_1_NAME_PLURAL>
-						[ 
-  							ask other <BREED_1_NAME_PLURAL>
-  							[ 
-  								<PROCEDURE_1>
-  							]
+						[
+							ask other <BREED_1_NAME_PLURAL>
+							[
+								<PROCEDURE_1>
+							]
 						]
 						```
 
 						---
-						12.9 Entities with variables, logic operations, and procedures
+						## 12.9 Entities with variables, logic operations, and procedures
 
 						All this can be combined to form quite complex rules of behaviour, yet keeping itself generally readable:
 
 						```NetLogo
 						to celebrate-birthday
-
-  							ask people
-  							[
-    							if (today = my-birthday)
-    							[
-					      			ask other people with [presents > 0]
-      								[
-        								give-present
-      								]
-    							]
-  							]
+							ask people
+							[
+								if (today = my-birthday)
+								[
+									ask other people with [presents > 0]
+									[
+										give-present
+									]
+								]
+							]
 						end
 						```
 
 						---
-						## 12.10 Grid
+						## 12.10 Grid (world)
+
+						Interface > Settings > Grid
+
+						<img src="https://ccl.northwestern.edu/netlogo/5.3.1/docs/images/interface/settings.png" width="200">
+						
+						Default: 33x33 grid with the position (0,0) at the centre.
+						
+						Warning: often you will want to uncheck the 'wrap' options. To see the effect of this, try:
+						```NetLogo
+						ask patch -16 0 [ print distance patch 16 0 ]
+						```
+
+						---
+						## 12.11 Commenting code
+
+						```NetLogo
+						<CODE>
+						; <FREE_TEXT>
+						<CODE>
+						; or
+						<CODE> ; <FREE_TEXT>
+						```
+
+						---
+						## 12.12 Dictionary
+
+						Help > Dictionary
+
+						Any word highlighted in blue or violet in the code editor can be looked up in the dictionary.
+
+						---
+						# 13 Sneak-peak at other languages
+
+						---
+						## 13.1 ABM beyond NetLogo
+
+						**ABM is not equivalent to NetLogo** or any other software, it is a way of thinking about processes and systems.
+
+
+						Tecnically, ABM can be implemented in any programming language, however it is often easier to use a dedicated software (with a graphical interface, a built-in language, etc.).
+
+						---
+						## 13.2 Major ABM platforms and libraries
+						### **RePast** (Recursive Porous Agent Simulation Toolkit)
+
+						<img src="https://repast.github.io/images/Repast_logo_100h.png" alt="RePast logo" width="200"/>
+
+						* **Languages:** Java (RePast J), Python (RePast Py), and RePast Simphony (with GUI).
+						* **Highlights:** A long-established, research-oriented platform; used in social science, ecology, and urban modelling.
+						* **Why it matters:** Provides strong support for building complex, data-driven models; integrates with GIS and statistical analysis.
+						* **Learn more:** [https://repast.github.io](https://repast.github.io)
+
+						---
+						## 13.2 Major ABM platforms and libraries
+						### **AnyLogic**
+
+						<img src="https://upload.wikimedia.org/wikipedia/en/thumb/1/11/AnyLogic_7_vector_logo.svg/235px-AnyLogic_7_vector_logo.svg.png?20150319094020" alt="AnyLogic logo" width="200"/>
+
+						* **Language:** Java-based, with a graphical modelling interface.
+						* **Highlights:** Commercial and widely used in industry (logistics, epidemiology, economics). Combines ABM, system dynamics, and discrete-event simulation.
+						* **Why it matters:** Demonstrates how ABM concepts are applied in professional and business contexts, often for decision-support.
+						* **Learn more:** [https://www.anylogic.com](https://www.anylogic.com)
+
+						---
+						## 13.2 Major ABM platforms and libraries
+						### **GAMA**
+
+						<img src="https://gama-platform.org/img/gama-logo.png" alt="GAMA logo" width="200"/>
+
+						* **Language:** GAML (GAMA Modelling Language), based on Java.
+						* **Highlights:** Open-source, designed for spatial and multi-agent simulations. Used in ecology, geography, and urban planning.
+						* **Why it matters:** Provides a strong focus on spatial modelling and GIS integration, making it ideal for environmental and geographic applications.
+						* **Learn more:** [https://gama-platform.github.io](https://gama-platform.github.io)
+
+						---
+						## 13.2 Major ABM platforms and libraries
+						### **MASON**
+
+						<img src="https://cs.gmu.edu/~eclab/projects/mason/thumbs/T_Ants.png" alt="MASON logo" width="170"/>
+
+						* **Language:** Java
+						* **Highlights:** Open-source, designed for large-scale, high-performance simulations. Used in ecology, social science, and engineering.
+						* **Why it matters:** Provides a strong focus on performance and scalability, making it suitable for large-scale simulations.
+						* **Learn more:** [https://cs.gmu.edu/~eclab/projects/mason](https://cs.gmu.edu/~eclab/projects/mason)
+
+						---
+						## 13.2 Major ABM platforms and libraries
+						### **Mesa**
+
+						<img src="https://mesa.readthedocs.io/latest/_static/mesa_logo.png" alt="Mesa logo" width="170"/>
+
+						* **Language:** Python
+						* **Highlights:** Open-source ABM framework with web-based visualisation; well integrated with data science libraries like NumPy and pandas.
+						* **Why it matters:** Ideal for researchers who already use Python for data analysis. Encourages modular and reproducible modelling workflows.
+						* **Learn more:** [https://mesa.readthedocs.io/latest/](https://mesa.readthedocs.io/latest/)
+
+						---
+						## 13.2 Major ABM platforms and libraries
+						### **Agents.jl**
+
+						<img src="https://juliadynamics.github.io/Agents.jl/stable/assets/logo.png" alt="Agents.jl logo" width="170"/>
+
+						* **Language:** Julia
+						* **Highlights:** Modern, high-performance ABM library that is easy to integrate with numerical computing and visualisation tools in Julia.
+						* **Why it matters:** Demonstrates how ABM can benefit from efficient computation and real-time data analysis in a single language. Provides a strong focus on performance and scalability, making it suitable for large-scale simulations.
+						* **Learn more:** [https://juliadynamics.github.io/Agents.jl](https://juliadynamics.github.io/Agents.jl)
+
+						---
+						## 13.3 Quick comparison of ABM frameworks
+
+| Platform / Library             | Language                      | Visual interface                                  | Typical use cases                                                    | License / Access                            | Learning curve                             |
+| ------------------------------ | ----------------------------- | ------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------ |
+| **NetLogo**                    | NetLogo (Logo-like)           | ✅ Built-in GUI, easy model prototyping            | Education, conceptual models, rapid exploration                      | Free & open-source                          | ⭐ Beginner-friendly                        |
+| **RePast** (Simphony / J / Py) | Java / Python                 | ✅ (Simphony) or code-only                         | Complex scientific ABM, GIS models, large-scale simulations          | Free & open-source                          | ⭐⭐⭐ Advanced                               |
+| **AnyLogic**                   | Java-based                    | ✅ Professional GUI, multi-method                  | Industry simulation (health, transport, logistics), decision-support | Commercial (educational licenses available) | ⭐⭐⭐⭐ High but powerful                     |
+
+						---
+						## 13.3 Quick comparison of ABM frameworks (cont'd)
+
+| Platform / Library             | Language                      | Visual interface                                  | Typical use cases                                                    | License / Access                            | Learning curve                             |
+| ------------------------------ | ----------------------------- | ------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------ |
+| **GAMA**                       | GAML (Java-based)             | ✅ Built-in GUI, GIS integration                   | Ecology, geography, urban planning                                   | Free & open-source                          | ⭐⭐ Intermediate (Java skills needed)      |
+| **MASON**                      | Java                          | ✅ Code-only, some built-in visualisation tools    | Ecology, social science, engineering, large-scale simulations        | Free & open-source                          | ⭐⭐⭐ Advanced                               |
+| **Mesa**                       | Python                        | ✅ Web-based UI templates                          | Research ABM + Python data analysis pipelines                        | Free & open-source                          | ⭐⭐ Intermediate (Python skills needed)     |
+| **Agents.jl**                  | Julia                         | ✅ Visualisation in Julia ecosystem                | High-performance scientific computing, real-time analysis            | Free & open-source                          | ⭐⭐⭐ Intermediate–Advanced                  |
+
+						---
+						## 13.4 Other frameworks and resources
+						
+						➡️ Explore: [https://www.swarm.org/wiki/ABM_Resources](https://www.swarm.org/wiki/ABM_Resources)
+
+						---
+						## 13.5 What to take away
+
+						* **NetLogo**: ideal for learning ABM concepts quickly, focusing on model logic rather than low-level programming.
+						* **Other frameworks** offer greater flexibility, scalability, and integration with scientific workflows — but they require more programming experience and practice with the platform.
+
+						learning about them is always a good idea!
+						---
+						## 14 NetLogo tutorials
+
+						Let us get another round of hands-on experience with the NetLogo language. 
+
+						Complete the four official tutorials provided by the NetLogo developers:
+						* **#0 – Sample Model**: [https://docs.netlogo.org/sample.html](https://docs.netlogo.org/sample.html) 
+						* **#1 – Models**: [https://docs.netlogo.org/tutorial1.html](https://docs.netlogo.org/tutorial1.html)
+						* **#2 – Commands**: [https://docs.netlogo.org/tutorial2.html](https://docs.netlogo.org/tutorial2.html)
+						* **#3 – Procedures**: [https://docs.netlogo.org/tutorial3.html](https://docs.netlogo.org/tutorial3.html)
 
 					</textarea>
 				</section>
