@@ -35,6 +35,8 @@
 						
 						**Repeat**
 
+						<small>You can use tools like [Text Compare!](https://text-compare.com/) to compare your file with the solution file</small>
+
 						---
 						## 17.1 Refresing the specificacions of the conceptual model
 
@@ -50,14 +52,14 @@
 						- `settlements`: fixed to a coastal patch and with an "economic size" (`sizeLevel`).     
 						- `traders`: mobile agents but with a fixed base at a settlement (`base`).
 
-```NetLogo
-breed [ settlements settlement ]
-breed [ traders trader ]
+            ```NetLogo
+            breed [ settlements settlement ]
+            breed [ traders trader ]
 
-settlements-own [ sizeLevel ]
+            settlements-own [ sizeLevel ]
 
-traders-own [ base ]
-```
+            traders-own [ base ]
+            ```
 						
 						<small>`size` is not a valid name. It is a reserved word in NetLogo and it is used to define the size of the agent shape in the interface.</small>
 
@@ -81,32 +83,32 @@ traders-own [ base ]
 						---
 						## 17.4 Creating `settlements` - Solution
 
-```NetLogo
-to create-coastal-settlements
+            ```NetLogo
+            to create-coastal-settlements
 
-  ; consider only coastal patches
-  let coastalPatches patches with [(isLand = true) and (any? neighbors with [isLand = false])]
+              ; consider only coastal patches
+              let coastalPatches patches with [(isLand = true) and (any? neighbors with [isLand = false])]
 
-  repeat numberOfSettlements
-  [
-    ; ask a random coastal patch without a settlement already
-    ask one-of coastalPatches with [not any? settlements-here]
-    [
-      sprout-settlements 1 ; creates one "turtle" of breed settlements
-      [
-        set sizeLevel 1 + random 10; sets a random arbitrary size level for the settlement (between 1 and 10)
+              repeat numberOfSettlements
+              [
+                ; ask a random coastal patch without a settlement already
+                ask one-of coastalPatches with [not any? settlements-here]
+                [
+                  sprout-settlements 1 ; creates one "turtle" of breed settlements
+                  [
+                    set sizeLevel 1 + random 10; sets a random arbitrary size level for the settlement (between 1 and 10)
 
-        ; give meaningful display proportional to size
-        set shape "circle 2"
-        set size 1 + sizeLevel / 3
-      ]
-      ; exclude this patch from the pool of coastal patches
-      set coastalPatches other coastalPatches
-    ]
-  ]
+                    ; give meaningful display proportional to size
+                    set shape "circle 2"
+                    set size 1 + sizeLevel / 3
+                  ]
+                  ; exclude this patch from the pool of coastal patches
+                  set coastalPatches other coastalPatches
+                ]
+              ]
 
-end
-```
+            end
+            ```
                         
 						<small>Remember to create `numberOfSettlements` as a slider in the interface.</small>
 
@@ -131,28 +133,28 @@ end
 						---
 						## 17.6 Creating `traders` - Solution
 
-```NetLogo
-to create-traders-per-settlement
+            ```NetLogo
+            to create-traders-per-settlement
 
-  ask settlements
-  [
-    let thisSettlement self ; to avoid the confusion of nested agent queries
-    hatch-traders round sizeLevel ; use the sizeLevel variable as the number of traders based in the settlement
-    [
-      set base thisSettlement
+              ask settlements
+              [
+                let thisSettlement self ; to avoid the confusion of nested agent queries
+                hatch-traders round sizeLevel ; use the sizeLevel variable as the number of traders based in the settlement
+                [
+                  set base thisSettlement
 
-      ; give meaningful display related to base
-      set shape "sailboat side" ; import this shape from the library (Tools > Shape editor > import from library)
-      set color [color] of base
-      set size 3
+                  ; give meaningful display related to base
+                  set shape "sailboat side" ; import this shape from the library (Tools > Shape editor > import from library)
+                  set color [color] of base
+                  set size 3
 
-      ; place it somewhere in the pond, randomly for now (if not, the command "hatch-breed" will place them in the same patch of the settlement)
-      move-to one-of patches with [isLand = false]
-    ]
-  ]
+                  ; place it somewhere in the pond, randomly for now (if not, the command "hatch-breed" will place them in the same patch of the settlement)
+                  move-to one-of patches with [isLand = false]
+                ]
+              ]
 
-end
-```
+            end
+            ```
 
 						---
 						## 17.7 Adapting `setup` (initialisation)
@@ -166,9 +168,385 @@ end
 						---
 						## 17.8 Adapting `setup` - Solution
 
+            ```NetLogo
+            to setup
+
+              clear-all
+
+              ; set the random seed so we can reproduce the same experiment
+              random-seed seed
+
+              create-map
+
+              create-coastal-settlements
+
+              create-traders-per-settlement
+
+              update-display
+
+            end
+
+            to update-display
+
+              ask settlements [ set hidden? not showSettlements ]
+
+            end
+            ```
+
+						---
+						### Checking the milestone File (step 6)
+
+						<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step06_agent-types-interface.png" width="600">
+
+						---
+						## 17.9 Check agent variable inheritance
+
+						- `create` amd `sprout` commands: no inheritance
+						- `hatch` command: inheritance from parent agent (the one that hatches the new agent)
+
+						In this case, the parent agent is the settlement, so the trader inherits the values of all shared variables (e.g. `xcor`, `ycor`, `colour`, `breed`, etc.) from the settlement.
+
+						---
+						## 17.9 Check agent variable inheritance
+
+						Test this by inspecting a trader and its base settlement after running `setup`.
+
+						<img src="https://github.com/CoDArchLab-ABM/course-guide/blob/main/assets/screenshots/BlockB_PondTrade_step06_agent-types-interface_agentDetail.png?raw=true" width="300">
+						
+						<small>Note: you can also use the `inspect` command to inspect agents.</small>
+
+						---
+						However, these variables were set explicitly (overwriting the inherited values)
+
+						Comment-out the line `set color [color] of base` in the `create-traders-per-settlement` procedure:
+						
+            ```NetLogo
+            to create-traders-per-settlement
+                  ...
+
+                  ; give meaningful display related to base
+                  set shape "sailboat side" ; import this shape from the library (Tools > Shape editor > import from library)
+                  ;set color [color] of base
+                  set size 3
+
+                  ...
+
+            end
+            ``` 
+
+						Run `setup` again and inspect a trader and its base settlement again to see the effect of inheritance in the variable `color`.
+
+						<small>Note 2: the line is irrelevant, however it might be useful in other contexts. Keep it!</small>
+
+						---
+						## 18 Programming agent AI
+
+						---
+						## 18.1 Modelling behaviour
+
+						Artificial Intelligence (AI) is the simulation of human intelligence in machines that are programmed to think and act like humans (or anything we consider intelligent).
+
+						<img src="https://wholebrainteaching-com.exactdn.com/wp-content/uploads/2016/03/Rule-2-Harry.jpg?strip=all&lossy=1&w=1200&ssl=1" alt="Behavior rule card from school" width="200">
+
+						In the context of ABM, AI refers to the rules and decision-making processes that govern the behaviour of individual agents within the model.
+
+						---
+						## 18.1 Modelling behaviour
+						
+						For our model, based on the conceptual model, we will implement simple behaviour for two agent types:
+
+						- `settlements`: 
+							- produce goods according to their size and a productivity term. 
+							- create or destroy traders according to their current size. 
+						- `traders`: 
+							- take some goods from their base and deliver them to another settlement, 
+							- which is chosen based on the size of other settlements and the distance between these and the base settlement.
+							- Traders will then return with goods from that settlement back to the base and restart the cycle.
+						
+						<small>Implementing these behavioural rules will take us from step 6 to 9.</small>
+						---
+						## 18.2 Implementing path finding
+
+						Start from the most fundamental: **movement of traders between settlements**.
+						
+						We want a proper *path-finding algorithm* that will allow traders to navigate the pond avoiding land patches (least-cost path).
+
+						We will use the [A* (A-star) algorithm in NetLogo User Community Models](http://ccl.northwestern.edu/netlogo/models/community/Astardemo1).
+
+						<img src="http://ccl.northwestern.edu/netlogo/community/Astardemo1.png" alt="A* path-finding algorithm" width="200">
+
+						<small>Try also the simpler implementation using Euclidean distance and `links` in the [PondTrade_step07_agent AI v2_links.nlogo](https://github.com/Andros-Spica/PondTrade/blob/master/PondTrade_step07_agent%20AI%20v2_links.nlogo) file.</small>
+
+						---
+						## 18.2 Implementing path finding
+						### Walking through the A* code
+
+            ```NetLogo
+            patches-own
+            [
+              isLand
+              pathCost
+              
+              ;;; path-finding related
+              parent-patch ; patch's predecessor
+              f ; the value of knowledge plus heuristic cost function f()
+              g ; the value of knowledge cost function g()
+              h ; the value of heuristic cost function h()
+            ]
+
+            ...
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;;; A* path finding algorithm ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ; modified from Meghendra Singh's Astardemo1 model in NetLogo User Community Models
+            ; http://ccl.northwestern.edu/netlogo/models/community/Astardemo1
+            ; modified lines/fragments are marked with ";-------------------------------*"
+            ; In this version, patches have different movement cost.
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+            ; the actual implementation of the A* path finding algorithm
+            ; it takes the source and destination patches as inputs
+            ; and reports the optimal path if one exists between them as output
+            to-report find-a-path [ source-patch destination-patch]
+
+              ; initialize all variables to default values
+              let search-done? false
+              let search-path []
+              let current-patch 0
+              let open [] ;-------------------------------*
+              let closed [] ;-------------------------------*
+
+              ;-------------------------------*
+              ask patches with [ f != 0 ]
+              [
+                set f 0
+                set h 0
+                set g 0
+              ]
+              ;-------------------------------*
+
+              ; add source patch in the open list
+              set open lput source-patch open
+
+              ; loop until we reach the destination or the open list becomes empty
+              while [ search-done? != true]
+              [
+                ifelse length open != 0
+                [
+                  ; sort the patches in open list in increasing order of their f() values
+                  set open sort-by [ [?1 ?2] -> [f] of ?1 < [f] of ?2 ] open
+
+                  ; take the first patch in the open list
+                  ; as the current patch (which is currently being explored (n))
+                  ; and remove it from the open list
+                  set current-patch item 0 open
+                  set open remove-item 0 open
+
+                  ; add the current patch to the closed list
+                  set closed lput current-patch closed
+
+                  ; explore the Von Neumann (left, right, top and bottom) neighbors of the current patch
+                  ask current-patch
+                  [
+                    ; if any of the neighbors is the destination stop the search process
+                    ifelse any? neighbors4 with [ (pxcor = [ pxcor ] of destination-patch) and (pycor = [pycor] of destination-patch)] ;-------------------------------*
+                    [
+                      set search-done? true
+                    ]
+                    [
+                      ; the neighbors should not already explored patches (part of the closed list)
+                      ask neighbors4 with [ (not member? self closed) and (self != parent-patch) ] ;-------------------------------*
+                      [
+                        ; the neighbors to be explored should also not be the source or
+                        ; destination patches or already a part of the open list (unexplored patches list)
+                        if not member? self open and self != source-patch and self != destination-patch
+                        [
+                          ;set pcolor 45 ;-------------------------------*
+
+                          ; add the eligible patch to the open list
+                          set open lput self open
+
+                          ; update the path finding variables of the eligible patch
+                          set parent-patch current-patch
+                          set g [g] of parent-patch + pathCost ;-------------------------------*
+                          set h distance destination-patch
+                          set f (g + h)
+                        ]
+                      ]
+                    ]
+            ;        if self != source-patch ;-------------------------------*
+            ;        [
+            ;          set pcolor 35
+            ;        ]
+                  ]
+                ]
+                [
+                  ; if a path is not found (search is incomplete) and the open list is exhausted
+                  ; display a user message and report an empty search path list.
+                  user-message( "A path from the source to the destination does not exist." )
+                  report []
+                ]
+              ]
+
+              ; if a path is found (search completed) add the current patch
+              ; (node adjacent to the destination) to the search path.
+              set search-path lput current-patch search-path
+
+              ; trace the search path from the current patch
+              ; all the way to the source patch using the parent patch
+              ; variable which was set during the search for every patch that was explored
+              let temp first search-path
+              while [ temp != source-patch ]
+              [
+            ;    ask temp ;-------------------------------*
+            ;    [
+            ;      set pcolor 85
+            ;    ]
+                set search-path lput [parent-patch] of temp search-path
+                set temp [parent-patch] of temp
+              ]
+
+              ; add the destination patch to the front of the search path
+              set search-path fput destination-patch search-path
+
+              ; reverse the search path so that it starts from a patch adjacent to the
+              ; source patch and ends at the destination patch
+              set search-path reverse search-path
+
+              ; report the search path
+              report search-path
+            end
+            ```
+
+						---
+						## 18.2 Implementing path finding
+						### Assigning path costs 🤔
+
+						Once the algorithm is clear, we need to assign path costs to patches.
+
+						Before looking at the solution, try to write the code yourself:
+
+						- Each patch has a `pathCost` variable (already defined)
+						- Land patches have a high `pathCost` (arbitrary, e.g. 1000)
+						- Water patches have a low `pathCost` (the baseline, i.e. 1)
+
+						When and where should this be done?
+						Do we need to do it every time we run the search?
+						What value should be a parameter (slider) in the interface?
+
+						(EXTRA CHALLENGE: further differentiate the path cost in settlements, i.e. cost to "port")
+						---
+						## 18.2 Implementing path finding
+						### Assigning path costs - Solution
+
+            ```NetLogo
+            to create-map
+
+              ...
+
+              assign-path-cost
+
+              paint-patches
+
+            end
+
+            ...
+
+            to assign-path-cost
+
+              ask patches
+              [
+                ifelse (isLand = false)
+                [ set pathCost 1 ] ; arbitrary unit for now
+                [ set pathCost relativePathCostInLand ] ; defined by parameter in relation to the cost of path in water (i.e., 1)
+              ]
+
+            end
+            ```
+						<small>Remember to create the `relativePathCostInLand` slider in the interface.</small>
+
+						---
+						## 18.2 Implementing path finding
+						### Assigning path costs - Solution (challenge)
+
+            ```NetLogo
+            to create-coastal-settlements
+
+              ; consider only coastal patches
+              let coastalPatches patches with [(isLand = true) and (any? neighbors with [isLand = false])]
+
+              repeat numberOfSettlements
+              [
+                ; ask a random coastal patch without a settlement already
+                ask one-of coastalPatches with [not any? settlements-here]
+                [
+                  sprout-settlements 1 ; creates one "turtle" of breed settlements
+                  [
+                    set sizeLevel 1 + random 10 ; sets a random arbitrary size level for the settlement (between 1 and 10)
+
+                    ; give meaningful display proportional to size
+                    set shape "circle 2"
+                    set size 1 + sizeLevel / 3
+                  ]
+                  ; replace the land path cost with the port pathCost
+                  set pathCost relativePathCostInPort
+                  ; exclude this patch from the pool of coastal patches
+                  set coastalPatches other coastalPatches
+                ]
+              ]
+
+            end
+            ```
+						<small>Remember to create the `relativePathCostInPort` slider in the interface.</small>
+
+						---
+						## 18.3 Testing the A* path-finding
+
+						- Uncomment the lines involving `set pcolor ...` in the `find-a-path` procedure to visualise the search process
+						- reduce the simulation speed to see the search process
+						- run `setup` (which now sets `pathCost`)
+						- In the command center, run: 
+
+            ```NetLogo
+            show find-a-path (patch -30 -30) (patch 30 -30)
+            ```
+
+						<small>Try various coordinates to see how the search process work with different contexts.</small>
+						
+						---
+						## 18.3 Testing the A* path-finding
+
+            |  |  |  |  |
+            | --- | --- | --- | --- |
+            | <img src="https://github.com/CoDArchLab-ABM/course-guide/blob/main/assets/screenshots/BlockB_PondTrade_step07_agent AI v2_AStar view-process0.png?raw=true" width="200"> | <img src="https://github.com/CoDArchLab-ABM/course-guide/blob/main/assets/screenshots/BlockB_PondTrade_step07_agent AI v2_AStar view-process1.png?raw=true" width="200"> | <img src="https://github.com/CoDArchLab-ABM/course-guide/blob/main/assets/screenshots/BlockB_PondTrade_step07_agent AI v2_AStar view-process2.png?raw=true" width="200"> | <img src="https://github.com/CoDArchLab-ABM/course-guide/blob/main/assets/screenshots/BlockB_PondTrade_step07_agent AI v2_AStar view-process3.png?raw=true" width="200"> |
+
+						---
+						## 18.4 Finding all routes
+
+						Implement a new procedure `set-routes` that will:
+						- be called during in `setup` after creating the settlements
+						- will ask each settlement to find the best routes to every other settlements
+						- will store the path in a new global variable `routes`
+
+						This involves:
+						- creating a new global variable `routes`
+						- creating a new procedure `set-routes`
+						- calling `set-routes` in `setup`
+						- asking each settlement to find the best routes to every other settlements
+						- storing the path in a new global variable `routes`
+
+---
+## 18.4 Adapting model schedule - Solution
+
 ```NetLogo
+globals [ routes ]
+
+...
+
 to setup
 
+  reset-timer
   clear-all
 
   ; set the random seed so we can reproduce the same experiment
@@ -178,46 +556,1023 @@ to setup
 
   create-coastal-settlements
 
+  set-routes
+
+  create-traders-per-settlement
+
+  update-display
+
+  output-print (word "Set up took " timer " seconds.")
+
+end
+
+...
+
+to set-routes
+
+  set routes [] ; initialize/reset the routes as an empty list
+
+  let settlementsWithoutRoutes settlements ; helper variable to keep track of which settlement already searched for routes
+
+  ask settlements
+  [
+    let thisSettlement self
+
+    ask other settlementsWithoutRoutes
+    [
+      let optimalRoute find-a-path ([patch-here] of thisSettlement) ([patch-here] of self) ; find the optimal route to this settlement
+      set routes lput optimalRoute routes ; add the optimal route to the end of the routes list
+
+      ; paint route patches in shades of red depending on route frequency
+      foreach optimalRoute
+      [ ?1 ->
+        ask ?1
+        [
+          ifelse (pcolor = 106 or pcolor = 54) ; if its the first route crossing the patch
+          [
+            set pcolor 11
+          ]
+          [
+            set pcolor min (list (pcolor + 1) (19)) ; sets a maximum at 19 (the brightest)
+          ]
+        ]
+      ]
+    ]
+
+    set settlementsWithoutRoutes other settlementsWithoutRoutes
+
+  ]
+
+end
+```
+
+<small>With great computation comes great responsibility! Know that you can stop NetLogo by selecting "Tools > Halt" from the menu bar.</small>
+
+---
+## 18.5 Decision making
+
+Having implemented path-finding, we can now focus on the decision-making process of traders when choosing their destination settlement.
+
+<img src="https://damienhowellpt.com/wp-content/uploads/2022/07/Path-of-least-resistance.jpg" width="300">
+---
+## 18.5 Decision making 🤔
+
+Before looking at the solution, try to write the code yourself (this is a hard one!):
+
+- Create a new procedure `choose-destination` for the `trader` breed
+- The procedure should:
+  - calculate a "attractiveness" score for each settlement (excluding the base settlement)
+  - choose the destination settlement with the best attractiveness score
+- The attractiveness score should consider:
+  - the size of the settlement (bigger is more attractive)
+  - the distance (total path cost) from the base settlement (closer/less costly is more attractive)
+
+---
+## 18.5 Decision making - Solution
+
+```NetLogo
+traders-own [ base route destination direction lastPosition ]
+
+...
+
+to choose-destination ; ego = trader
+
+  let thisTrader self
+
+  ; get routes connecting the base settlement
+  let routesFromBase get-routes-from-settlement [base] of thisTrader
+
+  ; order these routes by benefit/cost ratio
+  set routesFromBase sort-by [ [?1 ?2] -> benefit-cost-of-route ?1 > benefit-cost-of-route ?2 ] routesFromBase
+
+  ; print the options available
+;  foreach routesFromBase
+;  [
+;    print "==============================================================="
+;    print "route between:"
+;    print [who] of get-origin-and-destination ?
+;    print "has the benefit-cost ratio of:"
+;    print benefit-cost-of-route ?
+;  ]
+;  print "-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x"
+
+  ; select the one with higher benefit/cost ratio
+  set route first routesFromBase
+
+  ; mark the most effective route
+  foreach route
+  [ ?1 ->
+    ask ?1 [ set pcolor yellow ]
+  ]
+
+  ; get the settlement of destination
+  set destination one-of (get-origin-and-destination route) with [who != [who] of ([base] of thisTrader)]
+
+end
+
+...
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Get and set routes (helper 'to-report' procedures) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to-report get-route [ settlement1 settlement2 ] ; accepts two settlements and returns a route
+
+  ; get routes connecting settlement1
+  let routesFromSettlement1 filter
+  [ ?1 ->
+    ([one-of settlements-here] of first ?1 = settlement1) or
+    ([one-of settlements-here] of last ?1 = settlement1)
+  ] routes
+
+  ; get the route connecting settlement2 from the previous list
+  let routeFromSettlement1ToSettlement2 filter
+  [ ?1 ->
+    ([one-of settlements-here] of first ?1 = settlement2) or
+    ([one-of settlements-here] of last ?1 = settlement2)
+  ] routesFromSettlement1
+
+  report first routeFromSettlement1ToSettlement2
+
+end
+
+to-report get-routes-from-settlement [ aSettlement ] ; accepts a settlement and return a list of routes
+
+  report filter
+  [ ?1 ->
+    ([one-of settlements-here] of first ?1 = aSettlement) or
+    ([one-of settlements-here] of last ?1 = aSettlement)
+  ] routes
+
+end
+
+to-report get-origin-and-destination [ aRoute ] ; accepts a route and returns a turtle-set with two settlements
+
+  report (turtle-set ([ one-of settlements-here ] of first aRoute) ([one-of settlements-here ] of last aRoute))
+
+end
+
+to-report benefit-cost-of-route [ aRoute ] ; accepts a route and returns a number (the benefit/cost ratio of the route)
+
+  let cost 0
+
+  foreach aRoute ; for every patch in the given route
+  [ ?1 ->
+    set cost cost + [pathCost] of ?1
+  ]
+
+  let originAndDestination get-origin-and-destination aRoute
+  let benefit 0
+  ask originAndDestination [ set benefit benefit + sizeLevel ] ; the benefit is the sum of the sizeLevel of the two settlements
+
+  report benefit / cost
+
+end
+```
+
+<small>`get-route` is only for debugging purposes, it is not used in the model.</small>
+---
+## 18.6 Movement
+
+Once destination is decided, the trader needs to:
+
+- move along the selected route until it reaches the destination settlement
+- return to the origin settlement following the same route in reverse
+
+<img src="https://www.awn.com/sites/default/files/image/attached/1060852-path-min.gif" width="400px">
+
+---
+## 18.6 Movement 🤔
+
+Before looking at the solution, try to write the code yourself (this is VERY hard!):
+- Create a new procedure(s) for the `trader` breed
+- The procedure should:
+  - move the trader along the selected route towards the destination settlement (or back)
+  - check if the trader is at the destination or base settlement and choose the right direction
+  - check if in a patch centre (round coordinates) to move to the next patch in the route
+  - move progressivelly towards the next patch in the route (not teleporting)
+  - speed should be dependent on the pathCost of the patch-here
+
+Things to consider:
+- How to keep track of the direction of movement?
+- How to keep track of the progress of movement?
+- How to check if the trader is at the destination or base settlement?
+- How to check if the trader is in a patch centre?
+- How to move progressivelly one patch centre to another?
+- How to make the speed dependent on the pathCost of the patch-here?
+
+---
+## 18.6 Movement - Solution
+
+```NetLogo
+to move-to-destination ; ego = trader
+
+  ; update lastPosition if in a patch center
+  if ((xcor = [pxcor] of patch-here) and (ycor = [pycor] of patch-here))
+  [
+    set lastPosition patch-here
+  ]
+  ; find where in the route list is the trader
+  let currentPosition position lastPosition route
+
+  ; set direction if in a settlement
+  ifelse (currentPosition = 0) ; in the first extreme of the route list
+  [
+    set direction 1 ; move in the route list towards larger index numbers
+  ]
+  [
+    if (currentPosition = (length route - 1)) ; in the last extreme of the route list
+    [
+      set direction -1 ; move in the route list towards smaller index numbers
+    ]
+  ]
+  ; else the trader is in route to either the base or the destination
+
+  ; move through the route following direction
+  let targetPatch item (currentPosition + direction) route
+  ;move-to targetPatch ; constant travel time (1 patch per tick)
+  facexy ([pxcor] of targetPatch) ([pycor] of targetPatch)
+  forward min (
+    list
+    (1 / [pathCost] of patch-here) ; the maximum distance in a tick in the current patch
+    (distancexy ([pxcor] of targetPatch) ([pycor] of targetPatch)) ; the distance to the target patch
+    )
+
+end
+```
+
+---
+## 18.6 Movement - Solution (continued)
+
+```NetLogo
+to go
+
+  ask traders
+  [
+    if (patch-here = [patch-here] of base) ; update the destination whenever in the base settlement
+    [
+      choose-destination
+    ]
+    move-to-destination
+  ]
+
+end
+```
+
+---
+## 18.7 Enhancing visualisation
+
+Colour the route patches depending on how many routes pass through them (done in `set-routes`)
+
+```NetLogo
+to setup
+
+  clear-all
+  reset-ticks
+
+  ; set the random seed so we can reproduce the same experiment
+  random-seed seed
+
+  create-map
+
+  create-coastal-settlements
+
+  set-routes
+
   create-traders-per-settlement
 
   update-display
 
 end
 
+...
+
 to update-display
 
-  ask settlements [ set hidden? not showSettlements ]
+  paint-routes
+  paint-active-routes
+
+  ; scale the size of settlements according to their dynamic free-scaled sizeLevel
+  let maxSettlementSize max [sizeLevel] of settlements
+
+  ask settlements
+  [
+    set hidden? not showSettlements
+    set size 1 + (sizeLevel / maxSettlementSize) * 9
+  ]
+
+end
+
+to paint-routes
+
+  ; resets route patches to the terrain color
+  foreach routes
+  [ ?1 ->
+    let aRoute ?1
+
+    foreach aRoute
+    [ ??1 ->
+      ask ??1 [ paint-terrain ]
+    ]
+  ]
+
+  ; paint route patches in shades of red depending on route frequency
+  foreach routes
+  [ ?1 ->
+    let aRoute ?1
+
+    foreach aRoute
+    [ ??1 ->
+      ask ??1
+      [
+        if (showRoutes)
+        [
+          ifelse (pcolor < 11 or pcolor > 19) ; if its the first route crossing the patch
+          [
+            set pcolor 11
+          ]
+          [
+            set pcolor min (list (pcolor + 1) (19)) ; sets a maximum at 19 (the brightest)
+          ]
+        ]
+      ]
+    ]
+  ]
+
+end
+
+to paint-active-routes
+
+  ask traders
+  [
+    foreach route
+    [ ?1 ->
+      ask ?1
+      [
+        ifelse (showActiveRoutes)
+        [
+          set pcolor yellow
+        ]
+        [
+          if (not showRoutes) ; if not displaying all routes
+          [
+            ; resets to the patch terrain color
+            paint-terrain
+          ]
+        ]
+      ]
+    ]
+  ]
 
 end
 ```
 
-						---
-						### Checking the milestone File (step 6)
+<small>Remember to create the `showRoutes` and `showActiveRoutes` switches in the interface.</small>
 
-						<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step06_agent-types-interface.png" width="600">
+---
+## 18.8 Testing agent behaviour
 
-						---
-						## 17.9 Check agent variable inheritance
-						- `create` amd `sprout` commands: no inheritance
-						- `hatch` command: inheritance from parent agent (the one that hatches the new agent)
+Temporary hack: replace the code in `create-traders-per-settlement`:
 
-						In this case, the parent agent is the settlement, so the trader inherits the values of all shared variables (e.g. `xcor`, `ycor`, `colour`, `breed`, etc.) from the settlement.
+```NetLogo
+to create-traders-per-settlement
 
-						Test this by inspecting a trader and its base settlement after running `setup`.
+  ; For now, we create only one trader to better control its behaviour
+  ask one-of settlements
+  [
+    let thisSettlement self
 
-						<small>Note: you can also use the `inspect` command to inspect agents.</small>
+    hatch-traders 1
+    [
+      set base thisSettlement
 
-						---
-						## 17.9 Check agent variable inheritance
+      set shape "sailboat side" ; import this shape from the library (Tools > Shape editor > import from library)
+      set color [color] of base
+      set size 3
+    ]
+  ]
 
-						However, note that we have set all shared variables explicitly in the `create-traders-per-settlement` procedure.
+; the previous code for creating traders can be commented out
+; by adding ';' at the beggining of each line, or
+; by selecting several lines and either selecting 'Edit > Comment' or pressing 'ctrl + ;'.
+;  ask settlements
+;  [
+;    let thisSettlement self ; to avoid the confusion of nested agent queries
+;    hatch-traders round sizeLevel ; use the sizeLevel variable as the number of traders based in the settlement
+;    [
+;      set base thisSettlement
+;
+;      ; give meaningful display related to base
+;      set shape "sailboat side" ; import this shape from the library (Tools > Shape editor > import from library)
+;      set color [color] of base
+;      set size 3
+;
+;      ; place it somewhere in the pond, randomly for now (if not, the command "hatch-breed" will place them in the same patch of the settlement)
+;      move-to one-of patches with [isLand = false]
+;    ]
+;  ]
 
-						Comment-out the line `set color [color] of base` in the `create-traders-per-settlement` procedure and run `setup` again. Inspect a trader and its base settlement to see the effect of inheritance.
+end
+```
 
-						<small>Note 2: the line is irrelevant, however it might be useful in other contexts. Keep it!</small>
+<small>Reduce `numberOfSettlements` (e.g. 10) and run `setup` and `run` (repeatedly) to observe the trader's behaviour.</small>
 
-						---
-						
+---
+### Checking the milestone File (step 7)
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step07_agent AI-v2_AStar-interface.png" width="600">
+
+---
+## 19 Implementing mechanisms
+
+---
+## 19 Implementing mechanisms
+### First-tier dynamics
+
+- Settlements produce goods, and have it decay over time.  
+- Traders choose destination✅, load, move✅ and unload goods.  
+- Settlements' size increase with goods and decay otherwise.  
+- Settlements get more or less traders depending on their size. 
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/images/0_conceptAtStart_firstTier_loops.png?raw=true" width="300">
+
+---
+## 19.1 Implementing one feedback loop 🤔
+### Trade and economic size
+
+Before looking at the solution, try to write the code yourself:
+
+- Traders load and unload goods at the base and destination settlements (use a variable: `cargoValue`) 
+- Settlements increase their size with goods coming by trade  
+- Reorganise the behaviour of traders inside a `update-traders` procedure  
+- Settlement size decay over time, down to a minimum size of 1 (use a parameter: `settlementSizeDecayRate`)  
+
+Things to consider:
+- When should traders load and unload goods?
+- How to decrease settlement size over time?
+
+---
+## 19.1 Implementing one feedback loop - Solution
+### Updating traders
+
+```NetLogo
+to update-traders
+
+  let tradersInBase traders with [is-in-base]
+  let tradersInDestination traders with [is-in-destination]
+
+  ; UPDATE LAST POSITION
+  ask traders
+  [
+    ; update lastPosition if in a patch center
+    if ((xcor = [pxcor] of patch-here) and (ycor = [pycor] of patch-here))
+    [
+      set lastPosition patch-here
+    ]
+  ]
+
+  ; UNLOAD
+  ask (turtle-set tradersInBase tradersInDestination) with [cargoValue > 0]
+  [
+    ; unload cargo (changes sizeLevel)
+    unload-cargo
+    ; load cargo (changes stock)
+    load-cargo
+  ]
+
+  ; CHOOSE DESTINATION
+  ask tradersInBase
+  [
+    ; update the destination whenever in the base settlement and there is cargo to transport
+    choose-destination
+  ]
+
+  ; FIND DIRECTION in route
+  ask (turtle-set tradersInBase tradersInDestination)
+  [
+    find-direction
+  ]
+
+  ; MOVE towards the next position in the route
+  ask traders
+  [
+    ; move following the route when there is cargo to transport
+    move-to-destination
+  ]
+
+end
+
+to choose-destination ; ego = trader
+
+  let thisTrader self
+
+  ; get routes connecting the base settlement
+  let routesFromBase get-routes-to-settlement [base] of thisTrader
+
+  ; order these routes by benefit/cost ratio
+  set routesFromBase sort-by [ [?1 ?2] -> benefit-cost-of-route ?1 > benefit-cost-of-route ?2 ] routesFromBase
+
+  ; print the options available
+;  foreach routesFromBase
+;  [
+;    print "==============================================================="
+;    print "route between:"
+;    print [who] of get-origin-and-destination ?
+;    print "has the benefit-cost ratio of:"
+;    print benefit-cost-of-route ?
+;  ]
+;  print "-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x"
+
+  ; select the one with higher benefit/cost ratio
+  set route first routesFromBase
+
+  ; get the settlement of destination
+  set destination one-of (get-origin-and-destination route) with [who != [who] of ([base] of thisTrader)]
+
+end
+
+to find-direction ; ego = trader
+
+  ; find where in the route list is the trader
+  let currentPosition position lastPosition route
+
+  ; set direction if in a settlement
+  ifelse (currentPosition = 0) ; in the first extreme of the route list
+  [
+    ; move in the route list towards larger index numbers
+    set direction 1
+  ]
+  [
+    if (currentPosition = (length route - 1)) ; in the last extreme of the route list
+    [
+      ; move in the route list towards smaller index numbers
+      set direction -1
+    ]
+  ]
+  ; else the trader is in route to either the base or the destination
+
+end
+
+to move-to-destination ; ego = trader
+
+  ; find where in the route list is the trader
+  let currentPosition position lastPosition route
+
+  ; move through the route following direction
+  let targetPatch item (currentPosition + direction) route
+  ;move-to targetPatch ; constant travel time (1 patch per tick)
+  facexy ([pxcor] of targetPatch) ([pycor] of targetPatch)
+  forward min (
+    list
+    (1 / [pathCost] of patch-here) ; the maximum distance in a tick in the current patch
+    (distancexy ([pxcor] of targetPatch) ([pycor] of targetPatch)) ; the distance to the target patch
+    )
+
+end
+
+to-report is-in-base ; ego = trader
+
+  report (xcor = [xcor] of base) and (ycor = [ycor] of base) ; if the trader arrived at the center of the base patch
+
+end
+
+to-report is-in-destination ; ego = trader
+
+  report (xcor = [xcor] of destination) and (ycor = [ycor] of destination) ; if the trader arrived at the center of the destination patch
+
+end
+```
+
+---
+## 19.1 Implementing one feedback loop - Solution
+### Unload and load cargo
+```NetLogo
+traders-own [ base route destination direction lastPosition cargoValue ]
+
+...
+
+to unload-cargo ; ego = trader
+
+  let thisTrader self
+  let settlementHere one-of settlements-here
+
+  ; unload cargo
+  ask settlementHere [ add-trade-effect [cargoValue] of thisTrader ]
+
+end
+
+to load-cargo ; ego = trader
+
+  let settlementHere one-of settlements-here
+
+  ; load cargo
+  set cargoValue [sizeLevel] of settlementHere
+
+end
+
+to add-trade-effect [ value ] ; ego = settlement
+
+  set sizeLevel sizeLevel + value
+
+end
+
+```
+
+---
+## 19.1 Implementing one feedback loop - Solution
+### Decreasing settlement size over time
+
+```NetLogo
+to go
+
+  tick
+
+  update-traders
+
+  ; the size of settlements decays with a constant rate, up to 1 (minimum)
+  ask settlements
+  [
+    set sizeLevel max (list 1 (sizeLevel * (1 - (settlementSizeDecayRate / 100)) ) )
+  ]
+
+  update-display
+
+end
+```
+
+<small>Remember to add the `settlementSizeDecayRate` slider to the interface.</small>
+
+---
+## 19.3 Visualising dynamics
+
+|  |  |
+| --- | --- |
+| <img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step08_adding-feedback-loops-1-plot1setting.png?raw=true" width="500"> | <img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step08_adding-feedback-loops-1-plot2setting.png?raw=true" width="500"> |
+
+---
+## 19.3 Visualising dynamics
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step08_adding-feedback-loops-1-interface.png?raw=true" width="800">
+
+<small>Is there something wrong with the model behaviour?</small>
+
+---
+## 19.4 Detecting and correcting mistakes 🤔
+
+Use `inspect` and printing commands to debug the model.
+
+Can you tell what is wrong with the model behaviour?
+
+<small>Hint: check the behaviour of traders when unloading and loading cargo.</small>
+
+---
+## 19.4 Detecting and correcting mistakes - Solution
+
+Traders will never load cargo at the start of our simulation!
+
+Reorganise `update-traders`:
+
+
+```NetLogo
+to update-traders
+  
+  ...
+
+  ; UNLOAD
+  ask (turtle-set tradersInBase tradersInDestination) with [cargoValue > 0]
+  [
+    ; unload cargo (changes sizeLevel)
+    unload-cargo
+  ]
+
+  ; LOAD
+  ask (turtle-set tradersInBase tradersInDestination)
+  [
+    ; load cargo (changes stock)
+    load-cargo
+  ]
+
+  ...
+
+end
+```
+
+---
+## 19.4 Detecting and correcting mistakes - Solution
+
+<img src="https://github.com/CoDArchLab-ABM/course-guide/blob/main/assets/screenshots/BlockB_PondTrade_step08_adding%20feedback%20loops%201%20interface_afterCorrection.png?raw=true" width="800">
+
+<small>Traders are now loading cargo at the start of the simulation and trade hubs eventually emerge.</small>
+
+---
+## 19.5 Implementing two feedback loops 🤔
+### Trade and production, and trade and number of traders
+
+Before looking at the solution, try to write the code yourself:
+- Settlements produce goods every tick in proportion to their size (use a parameter: `productionRate`; use variables: `sizeLevel`, `stock`)
+- The number of traders per settlement increases with settlement size (use variables: `currentNumberOfTraders`, `potentialNumberOfTraders`)
+- Reorganise the behaviour of settlements inside a `update-settlements` procedure
+
+Things to consider:
+- How to increase the stock of settlements over time?
+- How to calculate the potential number of traders?
+- How to create new traders when needed? How to remove them?
+
+---
+## 19.5 Implementing two feedback loops - Solution
+### Updating settlements and number of traders
+
+```NetLogo
+settlements-own
+[
+  sizeLevel
+  currentNumberOfTraders potentialNumberOfTraders
+]
+
+traders-own
+[
+  isActivated
+  base route destination direction lastPosition
+  cargoValue
+]
+
+...
+
+
+to create-traders-per-settlement
+
+  ask settlements
+  [
+    let thisSettlement self ; to avoid the confusion of nested agent queries
+
+    set potentialNumberOfTraders get-potential-number-of-traders
+
+    hatch-traders potentialNumberOfTraders ; use the sizeLevel variable as the number of traders based in the settlement
+    [
+      setup-trader thisSettlement
+    ]
+
+    set currentNumberOfTraders get-current-number-of-traders
+  ]
+
+end
+
+to setup-trader [ baseSettlement ]
+
+  set base baseSettlement
+  set isActivated true
+
+  ; give meaningful display related to base
+  set shape "sailboat side" ; import this shape from the library (Tools > Shape editor > import from library)
+  set color [color] of base
+  set size 3
+
+  choose-destination
+
+end
+
+...
+
+to update-settlements
+
+  ask settlements
+  [
+    let thisSettlement self
+
+    ; the sizeLevel of settlements decays with a constant rate, up to 1 (minimum)
+    set sizeLevel max (list 1 (sizeLevel * (1 - (settlementSizeDecayRate / 100)) ) )
+
+    ; determine the current and potential number of traders
+    set currentNumberOfTraders get-current-number-of-traders
+    set potentialNumberOfTraders get-potential-number-of-traders
+
+    ; conditions favors the creation of new traders
+    if (random-float 1 > currentNumberOfTraders / potentialNumberOfTraders )
+    [
+      ; create a new trader or activate an old one
+      repeat 1
+      [
+        ifelse (any? traders with [not isActivated])
+        [
+          ask one-of traders with [not isActivated]
+          [
+            setup-trader thisSettlement
+            move-to thisSettlement
+          ]
+        ]
+        [
+          hatch-traders 1
+          [
+            setup-trader thisSettlement
+          ]
+        ]
+      ]
+      set currentNumberOfTraders get-current-number-of-traders ; update currentNumberOfTraders
+    ]
+  ]
+
+end
+
+...
+
+to-report get-potential-number-of-traders ; ego = settlement
+
+  report (
+    1 +
+    (sizeLevel - 1)
+    )
+
+end
+
+to-report get-current-number-of-traders ; ego = settlement
+
+  let thisSettlement self
+  report count traders with [isActivated and base = thisSettlement ]
+
+end
+
+```
+
+<small>Add plot to visualise the number of traders, using the following: `plot count traders with [isActivated]`</small>
+
+---
+## 19.5 Implementing two feedback loops - Solution
+### Goods, stock and production
+
+```NetLogo
+settlements-own
+[
+  ...
+  stock
+]
+
+...
+
+to create-coastal-settlements
+
+  ; consider only coastal patches
+  let coastalPatches patches with [(isLand = true) and (any? neighbors with [isLand = false])]
+
+  repeat numberOfSettlements
+  [
+    ; ask a random coastal patch without a settlement already
+    ask one-of coastalPatches with [not any? settlements-here]
+    [
+      sprout-settlements 1 ; creates one "turtle" of breed settlements
+      [
+        set sizeLevel 1 ; the size level is initiated at minimum (i.e., 1)
+        set stock 0
+        set shape "circle 2"
+      ]
+      ; replace the land path cost with the port pathCost
+      set pathCost relativePathCostInPort
+      ; exclude this patch from the pool of coastal patches
+      set coastalPatches other coastalPatches
+    ]
+  ]
+
+end
+
+...
+
+to load-cargo ; ego = trader
+
+  let settlementHere one-of settlements-here
+
+  ; load cargo
+  set cargoValue [stock] of settlementHere
+  ask settlementHere [ set stock 0 ] ; empty the settlement stock
+
+end
+
+...
+
+to update-settlements
+
+  ask settlements
+  [
+    let thisSettlement self
+
+    ; the sizeLevel of settlements decays with a constant rate, up to 1 (minimum)
+    set sizeLevel max (list 1 (sizeLevel * (1 - (settlementSizeDecayRate / 100)) ) )
+    ; production in stock also decays with a constant rate
+    set stock stock * (1 - (stockDecayRate / 100))
+    ; prodution is generated in proportion to sizeLevel, following a constant rate
+    set stock stock + sizeLevel * (productionRate / 100)
+
+    ; determine the current and potential number of traders
+    set currentNumberOfTraders get-current-number-of-traders
+    set potentialNumberOfTraders get-potential-number-of-traders
+
+    ; conditions favors the creation of new traders
+    if (random-float 1 > currentNumberOfTraders / potentialNumberOfTraders )
+    [
+      ; create a new trader or activate an old one
+      repeat 1
+      [
+        ifelse (any? traders with [not isActivated])
+        [
+          ask one-of traders with [not isActivated]
+          [
+            setup-trader thisSettlement
+            move-to thisSettlement
+          ]
+        ]
+        [
+          hatch-traders 1
+          [
+            setup-trader thisSettlement
+          ]
+        ]
+      ]
+      set currentNumberOfTraders get-current-number-of-traders ; update currentNumberOfTraders
+    ]
+  ]
+
+end
+```
+
+<small>Remenber to create `productionRate`, `stockDecayRate`, `settlementSizeDecayRate` as parameters in the interface.</small>
+
+---
+## 19.6 Detecting hidden "magic numbers"
+
+Economical size is translated directly into the number of traders.
+
+```NetLogo
+to-report get-potential-number-of-traders ; ego = settlement
+
+  report (
+    1 +
+    (sizeLevel - 1) 🪄
+    )
+
+end
+```
+
+Let's introduce a parameter to control this relationship!
+
+---
+## 19.6 Detecting hidden "magic numbers" - Solution
+
+```NetLogo
+settlements-own
+[
+  ...
+
+  frequencyOverQuality
+]
+
+...
+
+to create-coastal-settlements
+
+  ; consider only coastal patches
+  let coastalPatches patches with [(isLand = true) and (any? neighbors with [isLand = false])]
+
+  repeat numberOfSettlements
+  [
+    ; ask a random coastal patch without a settlement already
+    ask one-of coastalPatches with [not any? settlements-here]
+    [
+      sprout-settlements 1 ; creates one "turtle" of breed settlements
+      [
+        set sizeLevel 1 ; the size level is initiated at minimum (i.e., 1)
+        set stock 0
+        set frequencyOverQuality random-float 1
+        set shape "circle 2"
+      ]
+      ; replace the land path cost with the port pathCost
+      set pathCost relativePathCostInPort
+      ; exclude this patch from the pool of coastal patches
+      set coastalPatches other coastalPatches
+    ]
+  ]
+
+end
+
+to-report get-potential-number-of-traders ; ego = settlement
+
+  report (
+    1 +
+    (sizeLevel - 1) * frequencyOverQuality
+    )
+
+end
+```
+
+<small>The new parameter reads as "how much the frequency of trade is prioritised over the quality of the cargo".</small>
+
+---
+## 19.7 Checking the milestone File (step 9)
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step09_adding-feedback-loops-2-interface.png?raw=true" width="600">
+
+---
+## 19.8 Updating the conceptual model
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/images/0_conceptAtStep9_firstTier.png?raw=true" width="400">
+
 					</textarea>
 				</section>
 			</div>
