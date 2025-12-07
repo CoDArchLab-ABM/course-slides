@@ -21,10 +21,632 @@
 			<div class="slides">
 				<section data-markdown>
 					<textarea data-template>
-						## 1. Introduction to ABM
+						# 19 Implementing mechanisms
+
+---
+## 19 Implementing mechanisms
+### First-tier dynamics
+
+- Settlements produce goods, and have it decay over time.  
+- Traders choose destination✅, load, move✅ and unload goods.  
+- Settlements' size increase with goods and decay otherwise.  
+- Settlements get more or less traders depending on their size. 
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/images/0_conceptAtStart_firstTier_loops.png?raw=true" width="300">
+
+---
+## 19.1 Implementing one feedback loop 🤔
+### Trade and economic size
+
+Before looking at the solution, try to write the code yourself:
+
+- Traders load and unload goods at the base and destination settlements (use a variable: `cargoValue`) 
+- Settlements increase their size with goods coming by trade  
+- Reorganise the behaviour of traders inside a `update-traders` procedure  
+- Settlement size decay over time, down to a minimum size of 1 (use a parameter: `settlementSizeDecayRate`)  
+
+Things to consider:
+- When should traders load and unload goods?
+- How to decrease settlement size over time?
+
+---
+## 19.1 Implementing one feedback loop - Solution
+### Updating traders
+
+```NetLogo
+to update-traders
+
+  let tradersInBase traders with [is-in-base]
+  let tradersInDestination traders with [is-in-destination]
+
+  ; UPDATE LAST POSITION
+  ask traders
+  [
+    ; update lastPosition if in a patch center
+    if ((xcor = [pxcor] of patch-here) and (ycor = [pycor] of patch-here))
+    [
+      set lastPosition patch-here
+    ]
+  ]
+
+  ; UNLOAD
+  ask (turtle-set tradersInBase tradersInDestination) with [cargoValue > 0]
+  [
+    ; unload cargo (changes sizeLevel)
+    unload-cargo
+    ; load cargo (changes stock)
+    load-cargo
+  ]
+
+  ; CHOOSE DESTINATION
+  ask tradersInBase
+  [
+    ; update the destination whenever in the base settlement and there is cargo to transport
+    choose-destination
+  ]
+
+  ; FIND DIRECTION in route
+  ask (turtle-set tradersInBase tradersInDestination)
+  [
+    find-direction
+  ]
+
+  ; MOVE towards the next position in the route
+  ask traders
+  [
+    ; move following the route when there is cargo to transport
+    move-to-destination
+  ]
+
+end
+
+to choose-destination ; ego = trader
+
+  let thisTrader self
+
+  ; get routes connecting the base settlement
+  let routesFromBase get-routes-to-settlement [base] of thisTrader
+
+  ; order these routes by benefit/cost ratio
+  set routesFromBase sort-by [ [?1 ?2] -> benefit-cost-of-route ?1 > benefit-cost-of-route ?2 ] routesFromBase
+
+  ; print the options available
+;  foreach routesFromBase
+;  [
+;    print "==============================================================="
+;    print "route between:"
+;    print [who] of get-origin-and-destination ?
+;    print "has the benefit-cost ratio of:"
+;    print benefit-cost-of-route ?
+;  ]
+;  print "-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x"
+
+  ; select the one with higher benefit/cost ratio
+  set route first routesFromBase
+
+  ; get the settlement of destination
+  set destination one-of (get-origin-and-destination route) with [who != [who] of ([base] of thisTrader)]
+
+end
+
+to find-direction ; ego = trader
+
+  ; find where in the route list is the trader
+  let currentPosition position lastPosition route
+
+  ; set direction if in a settlement
+  ifelse (currentPosition = 0) ; in the first extreme of the route list
+  [
+    ; move in the route list towards larger index numbers
+    set direction 1
+  ]
+  [
+    if (currentPosition = (length route - 1)) ; in the last extreme of the route list
+    [
+      ; move in the route list towards smaller index numbers
+      set direction -1
+    ]
+  ]
+  ; else the trader is in route to either the base or the destination
+
+end
+
+to move-to-destination ; ego = trader
+
+  ; find where in the route list is the trader
+  let currentPosition position lastPosition route
+
+  ; move through the route following direction
+  let targetPatch item (currentPosition + direction) route
+  ;move-to targetPatch ; constant travel time (1 patch per tick)
+  facexy ([pxcor] of targetPatch) ([pycor] of targetPatch)
+  forward min (
+    list
+    (1 / [pathCost] of patch-here) ; the maximum distance in a tick in the current patch
+    (distancexy ([pxcor] of targetPatch) ([pycor] of targetPatch)) ; the distance to the target patch
+    )
+
+end
+
+to-report is-in-base ; ego = trader
+
+  report (xcor = [xcor] of base) and (ycor = [ycor] of base) ; if the trader arrived at the center of the base patch
+
+end
+
+to-report is-in-destination ; ego = trader
+
+  report (xcor = [xcor] of destination) and (ycor = [ycor] of destination) ; if the trader arrived at the center of the destination patch
+
+end
+```
+
+---
+## 19.1 Implementing one feedback loop - Solution
+### Unload and load cargo
+```NetLogo
+traders-own [ base route destination direction lastPosition cargoValue ]
+
+...
+
+to unload-cargo ; ego = trader
+
+  let thisTrader self
+  let settlementHere one-of settlements-here
+
+  ; unload cargo
+  ask settlementHere [ add-trade-effect [cargoValue] of thisTrader ]
+
+end
+
+to load-cargo ; ego = trader
+
+  let settlementHere one-of settlements-here
+
+  ; load cargo
+  set cargoValue [sizeLevel] of settlementHere
+
+end
+
+to add-trade-effect [ value ] ; ego = settlement
+
+  set sizeLevel sizeLevel + value
+
+end
+
+```
+
+---
+## 19.1 Implementing one feedback loop - Solution
+### Decreasing settlement size over time
+
+```NetLogo
+to go
+
+  tick
+
+  update-traders
+
+  ; the size of settlements decays with a constant rate, up to 1 (minimum)
+  ask settlements
+  [
+    set sizeLevel max (list 1 (sizeLevel * (1 - (settlementSizeDecayRate / 100)) ) )
+  ]
+
+  update-display
+
+end
+```
+
+<small>Remember to add the `settlementSizeDecayRate` slider to the interface.</small>
+
+---
+## 19.3 Visualising dynamics
+
+|  |  |
+| --- | --- |
+| <img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step08_adding-feedback-loops-1-plot1setting.png?raw=true" width="500"> | <img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step08_adding-feedback-loops-1-plot2setting.png?raw=true" width="500"> |
+
+---
+## 19.3 Visualising dynamics
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step08_adding-feedback-loops-1-interface.png?raw=true" width="800">
+
+<small>Is there something wrong with the model behaviour?</small>
+
+---
+## 19.4 Detecting and correcting mistakes 🤔
+
+Use `inspect` and printing commands to debug the model.
+
+Can you tell what is wrong with the model behaviour?
+
+<small>Hint: check the behaviour of traders when unloading and loading cargo.</small>
+
+---
+## 19.4 Detecting and correcting mistakes - Solution
+
+Traders will never load cargo at the start of our simulation!
+
+Reorganise `update-traders`:
+
+
+```NetLogo
+to update-traders
+  
+  ...
+
+  ; UNLOAD
+  ask (turtle-set tradersInBase tradersInDestination) with [cargoValue > 0]
+  [
+    ; unload cargo (changes sizeLevel)
+    unload-cargo
+  ]
+
+  ; LOAD
+  ask (turtle-set tradersInBase tradersInDestination)
+  [
+    ; load cargo (changes stock)
+    load-cargo
+  ]
+
+  ...
+
+end
+```
+
+---
+## 19.4 Detecting and correcting mistakes - Solution
+
+<img src="https://github.com/CoDArchLab-ABM/course-guide/blob/main/assets/screenshots/BlockB_PondTrade_step08_adding%20feedback%20loops%201%20interface_afterCorrection.png?raw=true" width="800">
+
+<small>Traders are now loading cargo at the start of the simulation and trade hubs eventually emerge.</small>
+
+---
+## 19.5 Implementing two feedback loops 🤔
+### Trade and production, and trade and number of traders
+
+Before looking at the solution, try to write the code yourself:
+- Settlements produce goods every tick in proportion to their size (use a parameter: `productionRate`; use variables: `sizeLevel`, `stock`)
+- The number of traders per settlement increases with settlement size (use variables: `currentNumberOfTraders`, `potentialNumberOfTraders`)
+- Reorganise the behaviour of settlements inside a `update-settlements` procedure
+
+Things to consider:
+- How to increase the stock of settlements over time?
+- How to calculate the potential number of traders?
+- How to create new traders when needed? How to remove them?
+
+---
+## 19.5 Implementing two feedback loops - Solution
+### Updating settlements and number of traders
+
+```NetLogo
+settlements-own
+[
+  sizeLevel
+  currentNumberOfTraders potentialNumberOfTraders
+]
+
+traders-own
+[
+  isActivated
+  base route destination direction lastPosition
+  cargoValue
+]
+
+...
+
+
+to create-traders-per-settlement
+
+  ask settlements
+  [
+    let thisSettlement self ; to avoid the confusion of nested agent queries
+
+    set potentialNumberOfTraders get-potential-number-of-traders
+
+    hatch-traders potentialNumberOfTraders ; use the sizeLevel variable as the number of traders based in the settlement
+    [
+      setup-trader thisSettlement
+    ]
+
+    set currentNumberOfTraders get-current-number-of-traders
+  ]
+
+end
+
+to setup-trader [ baseSettlement ]
+
+  set base baseSettlement
+  set isActivated true
+
+  ; give meaningful display related to base
+  set shape "sailboat side" ; import this shape from the library (Tools > Shape editor > import from library)
+  set color [color] of base
+  set size 3
+
+  choose-destination
+
+end
+
+...
+
+to update-settlements
+
+  ask settlements
+  [
+    let thisSettlement self
+
+    ; the sizeLevel of settlements decays with a constant rate, up to 1 (minimum)
+    set sizeLevel max (list 1 (sizeLevel * (1 - (settlementSizeDecayRate / 100)) ) )
+
+    ; determine the current and potential number of traders
+    set currentNumberOfTraders get-current-number-of-traders
+    set potentialNumberOfTraders get-potential-number-of-traders
+
+    ; conditions favors the creation of new traders
+    if (random-float 1 > currentNumberOfTraders / potentialNumberOfTraders )
+    [
+      ; create a new trader or activate an old one
+      repeat 1
+      [
+        ifelse (any? traders with [not isActivated])
+        [
+          ask one-of traders with [not isActivated]
+          [
+            setup-trader thisSettlement
+            move-to thisSettlement
+          ]
+        ]
+        [
+          hatch-traders 1
+          [
+            setup-trader thisSettlement
+          ]
+        ]
+      ]
+      set currentNumberOfTraders get-current-number-of-traders ; update currentNumberOfTraders
+    ]
+  ]
+
+end
+
+to update-traders
+
+  ...
 						
-						---
-						## 1.1 A teaser: Schelling's segregation model
+  ; UNLOAD
+  ask (turtle-set tradersInBase tradersInDestination) with [cargoValue > 0]
+  [
+    ; unload cargo (changes sizeLevel)
+    unload-cargo
+  ]
+
+  ; CHECK if the trader can be sustained when in the base
+  ask tradersInBase
+  [
+    if ([potentialNumberOfTraders < currentNumberOfTraders] of base)
+    [
+      ; the current number of traders cannot be sustained
+      set isActivated false
+      ; update currentNumberOfTraders of base
+      ask base [ set currentNumberOfTraders get-current-number-of-traders ]
+    ]
+  ]
+
+  set activeTraders traders with [isActivated] ; update active traders
+  set tradersInBase tradersInBase with [isActivated] ; update traders in base
+
+  ; LOAD
+  ask (turtle-set tradersInBase tradersInDestination)
+  [
+    ; load cargo (changes stock)
+    load-cargo
+  ]
+
+  ...
+						
+end
+
+...
+
+to-report get-potential-number-of-traders ; ego = settlement
+
+  report (
+    1 +
+    (sizeLevel - 1)
+    )
+
+end
+
+to-report get-current-number-of-traders ; ego = settlement
+
+  let thisSettlement self
+  report count traders with [isActivated and base = thisSettlement ]
+
+end
+
+```
+
+<small>Add plot to visualise the number of traders, using the following: `plot count traders with [isActivated]`</small>
+
+---
+## 19.5 Implementing two feedback loops - Solution
+### Goods, stock and production
+
+```NetLogo
+settlements-own
+[
+  ...
+  stock
+]
+
+...
+
+to create-coastal-settlements
+
+  ; consider only coastal patches
+  let coastalPatches patches with [(isLand = true) and (any? neighbors with [isLand = false])]
+
+  repeat numberOfSettlements
+  [
+    ; ask a random coastal patch without a settlement already
+    ask one-of coastalPatches with [not any? settlements-here]
+    [
+      sprout-settlements 1 ; creates one "turtle" of breed settlements
+      [
+        set sizeLevel 1 ; the size level is initiated at minimum (i.e., 1)
+        set stock 0
+        set shape "circle 2"
+      ]
+      ; replace the land path cost with the port pathCost
+      set pathCost relativePathCostInPort
+      ; exclude this patch from the pool of coastal patches
+      set coastalPatches other coastalPatches
+    ]
+  ]
+
+end
+
+...
+
+to load-cargo ; ego = trader
+
+  let settlementHere one-of settlements-here
+
+  ; load cargo
+  set cargoValue [stock] of settlementHere
+  ask settlementHere [ set stock 0 ] ; empty the settlement stock
+
+end
+
+...
+
+to update-settlements
+
+  ask settlements
+  [
+    let thisSettlement self
+
+    ; the sizeLevel of settlements decays with a constant rate, up to 1 (minimum)
+    set sizeLevel max (list 1 (sizeLevel * (1 - (settlementSizeDecayRate / 100)) ) )
+    ; production in stock also decays with a constant rate
+    set stock stock * (1 - (stockDecayRate / 100))
+    ; prodution is generated in proportion to sizeLevel, following a constant rate
+    set stock stock + sizeLevel * (productionRate / 100)
+
+    ; determine the current and potential number of traders
+    set currentNumberOfTraders get-current-number-of-traders
+    set potentialNumberOfTraders get-potential-number-of-traders
+
+    ; conditions favors the creation of new traders
+    if (random-float 1 > currentNumberOfTraders / potentialNumberOfTraders )
+    [
+      ; create a new trader or activate an old one
+      repeat 1
+      [
+        ifelse (any? traders with [not isActivated])
+        [
+          ask one-of traders with [not isActivated]
+          [
+            setup-trader thisSettlement
+            move-to thisSettlement
+          ]
+        ]
+        [
+          hatch-traders 1
+          [
+            setup-trader thisSettlement
+          ]
+        ]
+      ]
+      set currentNumberOfTraders get-current-number-of-traders ; update currentNumberOfTraders
+    ]
+  ]
+
+end
+```
+
+<small>Remenber to create `productionRate`, `stockDecayRate`, `settlementSizeDecayRate` as parameters in the interface.</small>
+
+---
+## 19.6 Detecting hidden "magic numbers"
+
+Economical size is translated directly into the number of traders.
+
+```NetLogo
+to-report get-potential-number-of-traders ; ego = settlement
+
+  report (
+    1 +
+    (sizeLevel - 1) 🪄
+    )
+
+end
+```
+
+Let's introduce a parameter to control this relationship!
+
+---
+## 19.6 Detecting hidden "magic numbers" - Solution
+
+```NetLogo
+settlements-own
+[
+  ...
+
+  frequencyOverQuality
+]
+
+...
+
+to create-coastal-settlements
+
+  ; consider only coastal patches
+  let coastalPatches patches with [(isLand = true) and (any? neighbors with [isLand = false])]
+
+  repeat numberOfSettlements
+  [
+    ; ask a random coastal patch without a settlement already
+    ask one-of coastalPatches with [not any? settlements-here]
+    [
+      sprout-settlements 1 ; creates one "turtle" of breed settlements
+      [
+        set sizeLevel 1 ; the size level is initiated at minimum (i.e., 1)
+        set stock 0
+        set frequencyOverQuality random-float 1
+        set shape "circle 2"
+      ]
+      ; replace the land path cost with the port pathCost
+      set pathCost relativePathCostInPort
+      ; exclude this patch from the pool of coastal patches
+      set coastalPatches other coastalPatches
+    ]
+  ]
+
+end
+
+to-report get-potential-number-of-traders ; ego = settlement
+
+  report (
+    1 +
+    (sizeLevel - 1) * frequencyOverQuality
+    )
+
+end
+```
+
+<small>The new parameter reads as "how much the frequency of trade is prioritised over the quality of the cargo".</small>
+
+---
+## 19.7 Checking the milestone File (step 9)
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockB_PondTrade_step09_adding-feedback-loops-2-interface.png?raw=true" width="600">
+
+---
+## 19.8 Updating the conceptual model
+
+<img src="https://codarchlab-abm.github.io/course-guide/assets/images/0_conceptAtStep9_firstTier.png?raw=true" width="400">
 
 					</textarea>
 				</section>
