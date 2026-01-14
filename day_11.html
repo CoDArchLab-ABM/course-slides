@@ -21,10 +21,896 @@
 			<div class="slides">
 				<section data-markdown>
 					<textarea data-template>
-						# 12 NetLogo language basics
+						# 26 Time series data input
+						## Weather data
 
 						---
-						## 12.1 Console interaction
+						## 26.1 Calculating ARID using weather data
+
+						Soil Water Balance model, implemented as a module in [Indus Village model](https://github.com/Andros-Spica/indus-village-model)
+
+						> Wallach, Daniel, David Makowski, James W. Jones, and Francois Brun. 2019. Working with Dynamic Crop Models (Third Edition). Academic Press. https://doi.org/10.1016/C2016-0-01552-8.
+
+						> Woli, Prem, James W. Jones, Keith T. Ingram, and Clyde W. Fraisse. 2012. ‘Agricultural Reference Index for Drought (ARID)’. Agronomy Journal 104 (2): 287. https://doi.org/10.2134/agronj2011.0286.
+
+						We will introduce here a way to import daily weather data (solar radiation, temperature, precipitation) from an external dataset, and use it to calculate ARID, which we will cover in the next chapter.
+
+						---
+						## 26.2 The input dataset
+
+						*File name*: POWER_Point_Daily_19840101_20201231_035d0309N_024d8335E_LST.csv
+
+						*Source*: NASA POWER (https://power.larc.nasa.gov/data-access-viewer/; see their sources and methodology at https://power.larc.nasa.gov/docs/methodology/)
+
+						*Point location*: Petrokefali (LAT: 35.0309; LON: 24.8335) 
+
+						*Time extent*: 01/01/1984 - 31/12/2020
+						
+						*Variables*:
+						- YEAR, MO, DY: year (number), month (index in year) and day (index in month) of observation/row
+						- PRECTOTCORR: The bias corrected average of total precipitation at the surface of the earth in water mass (includes water content in snow).  
+						- T2M_MIN, T2M_MAX: The maximum/minimum/average hourly air (dry bulb) temperature at 2 meters above the surface of the earth.  
+						- ALLSKY_SFC_SW_DWN: The total solar irradiance incident (direct plus diffuse) on a horizontal plane at the surface of the earth under all sky conditions. An alternative term for the total solar irradiance is the "Global Horizontal Irradiance" or GHI.
+
+						---
+						## 26.3 Loading the input dataset
+
+						The original implementation includes a procedure only for loading, running, and displaying the dataset as simulation input data.
+
+						```NetLogo
+						extensions [ csv ]
+
+						globals
+						[
+						;;; weather input data
+						weatherInputData_firstYear
+						weatherInputData_lastYear
+						weatherInputData_YEARS
+						weatherInputData_yearLengthInDays
+						weatherInputData_DOY
+						weatherInputData_YEAR-DOY
+						weatherInputData_solarRadiation
+						weatherInputData_precipitation
+						weatherInputData_temperature
+						weatherInputData_maxTemperature
+						weatherInputData_minTemperature
+
+						;;;; Solar radiation (MJ/m2)
+						solar_annualMax
+						solar_annualMin
+						solar_meanDailyFluctuation
+
+						;;; variables
+						;;;; time tracking
+						currentYear
+						currentDayOfYear
+
+						;;;; main (these follow a seasonal pattern and apply for all patches)
+
+						T ; average temperature of current day (ºC)
+						T_max ; maximum temperature of current day (ºC)
+						T_min ; minimum temperature of current day (ºC)
+
+						solarRadiation ; solar radiation of current day (MJ m-2)
+
+						RAIN ; precipitation of current day (mm)
+						precipitation_yearSeries
+						precipitation_cumYearSeries
+						]
+						```
+
+						---
+						## 26.3 Loading the input dataset (continued)
+
+						```NetLogo
+						to load-weather-input-data-table
+
+						;;; this procedure loads the values of the weather data input table
+						;;; the table contains:
+						;;;   1. 13 lines of metadata, to be ignored
+						;;;   2. one line with the headers of the table
+						;;;   3. remaining rows containing row name and values
+
+						let weatherTable csv:from-file "data/POWER_Point_Daily_19840101_20201231_035d0309N_024d8335E_LST.csv"
+
+						;;;==================================================================================================================
+						;;; mapping coordinates (row or columns) from headings (line 14 == index 13 -----------------------------------------
+						;;; NOTE: always correct raw mapping coordinates (start at 1) into list indexes (start at 0)
+						let variableNames item (14 - 1) weatherTable
+
+						let yearColumn position "YEAR" variableNames
+
+						let solarRadiationColumn position "ALLSKY_SFC_SW_DWN" variableNames
+
+						let precipitationColumn position "PRECTOTCORR" variableNames
+
+						let temperatureColumn position "T2M" variableNames
+
+						let temperatureMaxColumn position "T2M_MAX" variableNames
+
+						let temperatureMinColumn position "T2M_MIN" variableNames
+
+						;;;==================================================================================================================
+						;;; extract data---------------------------------------------------------------------------------------
+
+						;;; read variables per year and day (list of lists, matrix: year-day x variables)
+						let weatherData sublist weatherTable (15 - 1) (length weatherTable) ; select only those row corresponding to variable data, if there is anything else
+
+						;;; extract year-day of year pairs from the third and fourth columns
+						set weatherInputData_YEARS map [row -> item yearColumn row ] weatherData
+
+						;;; NASA-POWER data uses year, month, day of month, instead of day of year,
+						;;; so we need to calculate day of year of each row ourselves
+						set weatherInputData_DOY []
+						set weatherInputData_yearLengthInDays []
+						foreach (remove-duplicates weatherInputData_YEARS)
+						[
+							aYear ->
+							let aDoy 1
+							let lengthOfThisYear length (filter [i -> i = aYear] weatherInputData_YEARS)
+							set weatherInputData_yearLengthInDays lput lengthOfThisYear weatherInputData_yearLengthInDays
+							repeat lengthOfThisYear
+							[
+							set weatherInputData_DOY lput aDoy weatherInputData_DOY
+							set aDoy aDoy + 1
+							]
+						]
+						set weatherInputData_YEAR-DOY (map [[i j] -> (word i "-" j)] weatherInputData_YEARS weatherInputData_DOY)
+
+						;;; extract first and last year
+						set weatherInputData_firstYear first weatherInputData_YEARS
+
+						set weatherInputData_lastYear last weatherInputData_YEARS
+
+						;;; extract parameter values from the given column
+						;;; NOTE: read-from-string is required because the original file is formated in a way that NetLogo interprets values as strings.
+
+						set weatherInputData_solarRadiation map [row -> item solarRadiationColumn row ] weatherData
+
+						set weatherInputData_precipitation map [row -> item precipitationColumn row ] weatherData
+
+						set weatherInputData_temperature map [row -> item temperatureColumn row ] weatherData
+
+						set weatherInputData_maxTemperature map [row -> item temperatureMaxColumn row ] weatherData
+
+						set weatherInputData_minTemperature map [row -> item temperatureMinColumn row ] weatherData
+
+						end
+						```
+
+						<small>This is only one way of handling the data extraction and mapping in NetLogo. The key point is to ensure that all data is correctly mapped from the raw input format to the internal representation used by the model.</small>
+
+						---
+						## 26.4 Keeping tract of time in cycles
+
+						This module allows us to import the correct weather data values depending on NetLogo's current "tick" (which we use to represent days).
+
+						```Netlogo
+						to advance-time
+
+						set currentDayOfYear currentDayOfYear + 1
+						
+						if (currentDayOfYear > item (currentYear - weatherInputData_firstYear) weatherInputData_yearLengthInDays)
+						[
+							set currentYear currentYear + 1
+							set currentDayOfYear 1
+						]
+
+						end
+						```
+
+						---
+						## 26.5 Setting daily weather values
+
+						The module also includes a procedure for setting the daily weather values based on the current day of year and year.
+
+						```Netlogo
+						to set-day-weather-from-input-data [ dayOfYear year ]
+
+						;;; find corresponding index to year-dayOfYear pair
+
+						let yearAndDoyIndex position (word year "-" dayOfYear) weatherInputData_YEAR-DOY
+
+						;;; get values from weather input data
+
+						set solarRadiation item yearAndDoyIndex weatherInputData_solarRadiation
+
+						set T item yearAndDoyIndex weatherInputData_temperature
+
+						set T_min item yearAndDoyIndex weatherInputData_minTemperature
+
+						set T_max item yearAndDoyIndex weatherInputData_maxTemperature
+
+						set RAIN item yearAndDoyIndex weatherInputData_precipitation
+
+						if (dayOfYear = 1)
+						[
+							;;; fill values of precipitation_yearSeries and precipitation_cumYearSeries, used here only for visualisation
+
+							let yearLengthInDays item (currentYear - weatherInputData_firstYear) weatherInputData_yearLengthInDays
+							let yearAndLastDoyIndex position (word year "-" yearLengthInDays) weatherInputData_YEAR-DOY
+
+							set precipitation_yearSeries sublist weatherInputData_precipitation yearAndDoyIndex (yearAndLastDoyIndex + 1)
+
+							let yearTotal sum precipitation_yearSeries
+							set precipitation_cumYearSeries (list)
+							let cumulativeSum 0
+							foreach precipitation_yearSeries
+							[
+							i ->
+							set cumulativeSum cumulativeSum + i
+							set precipitation_cumYearSeries lput cumulativeSum precipitation_cumYearSeries
+							]
+							set precipitation_cumYearSeries map [i -> i / yearTotal] precipitation_cumYearSeries
+						]
+
+						end
+						```
+
+						---
+						## 26.6 Wrapping everying together
+
+						```NetLogo
+						to go
+
+						advance-time
+						
+						;;; values are taken from input data
+						set-day-weather-from-input-data currentDayOfYear currentYear
+
+						tick
+
+						; --- stop conditions -------------------------
+						
+						if (currentYear = weatherInputData_lastYear and currentDayOfYear = last weatherInputData_yearLengthInDays) [stop]
+
+						end
+						```
+
+						---
+						## 26.7 Checking the milestone File (module 3)
+
+						<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockC_module3_load-weather-data interface.png?raw=true" alt="Messara Trade module 3 - Load weather data" width="800">
+
+						<small>Check the widgets in the interface for how to reproduce the plots.</small>
+
+						---
+						# 27 Calculating ARID
+
+						---
+						## 27.1 Module variables and parameters
+
+						We must first define the required global and patch variables:
+
+						```Netlogo
+						globals
+						[
+						...
+
+						;;; default constants
+
+						MUF ; Water Uptake coefficient (mm^3.mm^-3)
+						WP ; Water content at wilting Point (cm^3.cm^-3)
+
+						;;;; ETr
+						albedo_min
+						albedo_max
+
+						;;;; Soil Water Balance model global parameters
+						WHC_min
+						WHC_max
+						DC_min
+						DC_max
+						z_min
+						z_max
+						CN_min
+						CN_max
+
+						...
+						]
+
+						...
+
+						patches-own
+						[
+						...
+
+						;;;; soil
+						DC ; Drainage coefficient (mm^3 mm^-3).
+						z ; root zone depth (mm).
+						CN ; Runoff curve number.
+						FC ; Water content at field capacity (cm^3.cm^-3)
+						WHC ; Water Holding Capacity of the soil (cm^3.cm^-3). Typical range from 0.05 to 0.25
+
+						ARID ; ARID index after Woli et al. 2012, ranging form 0 (no water shortage) to 1 (extreme water shortage)
+						WAT ; Water content in the soil profile for the rooting depth (mm)
+						WATp ; Volumetric Soil Water content (fraction : mm.mm-1). calculated as WAT/z
+
+						;;;; cover
+						albedo ; canopy reflection or albedo
+						netSolarRadiation ; net solar radiation discount canopy reflection or albedo
+						ETr ; reference evapotranspiration
+						]
+						```
+
+						---
+						## 27.2 Setting module parameters
+
+						We must also define how we set the parameters for the module:
+
+						```NetLogo
+						to set-constants
+
+						; "constants" are variables that will not be explored as parameters
+						; and may be used during a simulation.
+
+						; MUF : Water Uptake coefficient (mm^3 mm^-3)
+						set MUF 0.096
+
+						; WP : Water content at wilting Point (cm^3.cm^-3)
+						set WP 0.06
+
+						end
+
+						to set-parameters
+
+						; set random seed
+						random-seed seed
+
+						;;; load weather input data from file
+						load-weather-input-data-table
+
+						parameters-check
+
+						;;; weather parameters are left with default values, but effectively ignored given that input weather is used.
+
+						set albedo_min 1E-6 + random-float 0.3
+						set albedo_max albedo_min + random-float 0.3
+
+						;;; Soil Water Balance model
+						set WHC_min random-float 0.1
+						set WHC_max WHC_min + random-float 0.1
+						set DC_min 1E-6 + random-float 0.45
+						set DC_max DC_min + random-float 0.45
+						set z_min random-float 1000
+						set z_max z_min + random-float 1000
+						set CN_min random-float 40
+						set CN_max CN_min + random-float 50
+
+						end
+
+						to parameters-check
+
+						;;; check if values were reset to 0 (NetLogo does that from time to time...!)
+						;;; and set default values (assuming they are not 0)
+
+						if (par_albedo_min = 0)                                        [ set par_albedo_min                              0.1 ]
+						if (par_albedo_max = 0)                                        [ set par_albedo_max                              0.5 ]
+
+						if (water-holding-capacity_min = 0)                            [ set water-holding-capacity_min                    0.05 ]
+						if (water-holding-capacity_max = 0)                            [ set water-holding-capacity_max                    0.25 ]
+						if (drainage-coefficient_min = 0)                              [ set drainage-coefficient_min                      0.3 ]
+						if (drainage-coefficient_max = 0)                              [ set drainage-coefficient_max                      0.7 ]
+						if (root-zone-depth_min = 0)                                   [ set root-zone-depth_min                         200 ]
+						if (root-zone-depth_max = 0)                                   [ set root-zone-depth_max                        2000 ]
+						if (runoff-curve_min = 0)                                      [ set runoff-curve_min                             30 ]
+						if (runoff-curve_max = 0)                                      [ set runoff-curve_max                             80 ]
+
+						end
+
+						to parameters-to-default
+
+						;;; set parameters to a default value
+						set par_albedo_min                                            0.1
+						set par_albedo_max                                            0.5
+
+						set water-holding-capacity_min                                0.05
+						set water-holding-capacity_max                                0.25
+						set drainage-coefficient_min                                  0.3
+						set drainage-coefficient_max                                  0.7
+						set root-zone-depth_min                                     200
+						set root-zone-depth_max                                    2000
+						set runoff-curve_min                                         30
+						set runoff-curve_max                                         80
+
+						end
+
+						...
+
+						to setup-soil-water-properties
+
+						ask patchesWithElevationData
+						[
+							set albedo albedo_min + random-float (albedo_max - albedo_min)
+
+							; Water Holding Capacity of the soil (cm^3 cm^-3).
+							set WHC WHC_min + random-float (WHC_max - WHC_min)
+							; DC :  Drainage coefficient (mm^3 mm^-3)
+							set DC DC_min + random-float (DC_max - DC_min)
+							; z : root zone depth (mm)
+							set z z_min + random (z_max - z_min)
+							; CN : Runoff curve number
+							set CN CN_min + random (CN_max - CN_max)
+
+							; FC : Water content at field capacity (cm^3.cm^-3)
+							set FC WP + WHC
+							; WAT0 : Initial Water content (mm)
+							set WAT z * FC
+						]
+
+						end
+						```
+
+						<small>This is a long version of how to set parameters through script, which allows for more control over the initialization process.</small>
+
+						---
+
+						## 27.3 Calculating Reference Evapotranspiration (ETr)
+
+						ARID requires the calculation of reference evapotranspiration (ETr) first, which we do using the FAO-56 Penman-Monteith equation (Allen et al. 1998).
+
+						> Allen, Richard G., Luis S. Pereira, Dirk Raes, and Martin Smith. 1998. Crop Evapotranspiration - FAO Irrigation and Drainage Paper No. 56. Rome: FAO. http://www.fao.org/3/X0490E/x0490e00.htm.
+
+						---
+						## 27.3 Calculating Reference Evapotranspiration (ETr) (continued)
+
+						```NetLogo
+						to set-day-weather-from-input-data [ dayOfYear year ]
+
+						...
+
+						ask patchesWithElevationData
+						[
+							set netSolarRadiation (1 - albedo) * solarRadiation
+							set ETr get-ETr
+						]
+
+						end
+
+						...
+
+						to-report get-ETr
+
+						;;; useful references:
+						;;; Suleiman A A and Hoogenboom G 2007
+						;;; Comparison of Priestley-Taylor and FAO-56 Penman-Monteith for Daily Reference Evapotranspiration Estimation in Georgia
+						;;; J. Irrig. Drain. Eng. 133 175–82 Online: http://ascelibrary.org/doi/10.1061/%28ASCE%290733-9437%282007%29133%3A2%28175%29
+						;;; also: Jia et al. 2013 - doi:10.4172/2168-9768.1000112
+						;;; Allen, R. G., Pereira, L. A., Raes, D., and Smith, M. 1998.
+						;;; “Crop evapotranspiration.”FAO irrigation and  drainage paper 56, FAO, Rome.
+						;;; also: http://www.fao.org/3/X0490E/x0490e07.htm
+						;;; constants found in: http://www.fao.org/3/X0490E/x0490e07.htm
+						;;; see also r package: Evapotranspiration (consult source code)
+
+						let windSpeed 2 ; as recommended by: http://www.fao.org/3/X0490E/x0490e07.htm#estimating%20missing%20climatic%20data
+
+						;;; estimation of saturated vapour pressure (e_s) and actual vapour pressure (e_a)
+						let e_s (get-vapour-pressure T_max + get-vapour-pressure T_min) / 2
+						let e_a get-vapour-pressure T_min
+						; ... in absence of dew point temperature, as recommended by
+						; http://www.fao.org/3/X0490E/x0490e07.htm#estimating%20missing%20climatic%20data
+						; however, possibly min temp > dew temp under arid conditions
+
+						;;; slope of  the  vapor  pressure-temperature  curve (kPa ºC−1)
+						let DELTA 4098 * (get-vapour-pressure T) / (T + 237.3) ^ 2
+
+						;;; latent heat of vaporisation = 2.45 MJ.kg^-1
+						let lambda 2.45
+
+						;;; specific heat at constant pressure, 1.013 10-3 [MJ kg-1 °C-1]
+						let c_p 1.013 * 10 ^ -3
+						;;; ratio molecular weight of water vapour/dry air
+						let epsilon 0.622
+						;;; atmospheric pressure (kPa)
+						let P 101.3 * ((293 - 0.0065 * elevation) / 293) ^ 5.26
+						;;; psychometric constant (kPa ºC−1)
+						let gamma c_p * P / (epsilon * lambda)
+
+						;;; Penman-Monteith equation from: fao.org/3/X0490E/x0490e0 ; and from: weap21.org/WebHelp/Mabia_Alg ETRef.htm
+
+						; 900 and 0.34 for the grass reference; 1600 and 0.38 for the alfalfa reference
+						let C_n 900
+						let C_d 0.34
+
+						let ETr_temp (0.408 * DELTA * netSolarRadiation + gamma * (C_n / (T + 273)) * windSpeed * (e_s - e_a)) / (DELTA + gamma * (1 + C_d * windSpeed))
+
+						report ETr_temp
+
+						end
+
+						to-report get-vapour-pressure [ temp ]
+
+						report (0.6108 * exp(17.27 * temp / (temp + 237.3)))
+
+						end
+						```
+
+						---
+						## 27.4 Implementing the main algorithm
+
+						Finally, we can calculate ARID based on ETr and precipitation (RAIN), through the Soil Water Balance model:
+
+						```NetLogo
+						to update-WAT
+
+						; Soil Water Balance model
+						; Using the approach of:
+						; 'Working with dynamic crop models: Methods, tools, and examples for agriculture and enviromnent'
+						;  Daniel Wallach, David Makowski, James W. Jones, François Brun (2006, 2014, 2019)
+						;  Model description in p. 24-28, R code example in p. 138-144.
+						;  see also https://github.com/cran/ZeBook/blob/master/R/watbal.model.r
+						; Some additional info about run off at: https://engineering.purdue.edu/mapserve/LTHIA7/documentation/scs.htm
+						; and at: https://en.wikipedia.org/wiki/Runoff_curve_number
+
+						; Maximum abstraction (mm; for run off)
+						let S 25400 / CN - 254
+						; Initial Abstraction (mm; for run off)
+						let IA 0.2 * S
+						; WATfc : Maximum Water content at field capacity (mm)
+						let WATfc FC * z
+						; WATwp : Water content at wilting Point (mm)
+						let WATwp WP * z
+
+						; Change in Water Before Drainage (Precipitation - Runoff)
+						let RO 0
+						if (RAIN > IA)
+						[ set RO ((RAIN - 0.2 * S) ^ 2) / (RAIN + 0.8 * S) ]
+						; Calculating the amount of deep drainage
+						let DR 0
+						if (WAT + RAIN - RO > WATfc)
+						[ set DR DC * (WAT + RAIN - RO - WATfc) ]
+
+						; Calculate rate of change of state variable WAT
+						; Compute maximum water uptake by plant roots on a day, RWUM
+						let RWUM MUF * (WAT + RAIN - RO - DR - WATwp)
+						; Calculate the amount of water lost through transpiration (TR)
+						let TR min (list RWUM ETr)
+
+						let dWAT RAIN - RO - DR - TR
+						set WAT WAT + dWAT
+
+						set WATp WAT / z
+
+						set ARID 0
+						if (TR < ETr)
+						[ set ARID 1 - TR / ETr ]
+
+						end
+						```
+
+						---
+						## 27.5 Merging with spatial data module
+
+						To use the above module with spatial data, we need to ensure that the required variables and procedures are included in the spatial data module.
+
+						```NetLogo
+						extensions [ csv gis ]
+
+						...
+
+						breed [ sites site ]
+
+						breed [ flowHolders flowHolder ]
+
+						...
+
+						globals
+						[
+						patchesWithElevationData
+						noElevationDataTag
+						maxElevation
+
+						width
+						height
+
+						;;; GIS data holders
+						sitesData_EMIII-MMIA
+						sitesData_MMIB
+						elevationData
+						riversData
+
+						...
+						]
+
+						sites-own
+						[
+						name
+						siteType
+						period
+						]
+
+						patches-own
+						[
+						elevation ; elevation above sea level [m]
+
+						flow_direction        ; the numeric code for the (main) direction of flow or
+												; drainage within the land unit.
+												; Following Jenson & Domingue (1988) convention:
+												; NW = 64,   N = 128,        NE = 1,
+												; W = 32,     <CENTRE>,   E = 2,
+												; SW = 16,     S = 8,          SE = 4
+
+						flow_receive          ; Boolean variable stating whether or not the land unit receives
+												; the flow of a neighbour.
+
+						flow_accumulation     ; the amount of flow units accumulated in the land unit.
+												; A Flow unit is the volume of runoff water flowing from one land unit
+												; to another (assumed constant and without losses).
+						flow_accumulationState ; the state of the land unit regarding the calculation of flow
+												; accumulation (auxiliary variable).
+
+						isRiver
+
+						...
+						]
+
+						...
+
+
+						to import-map-with-flows
+						
+						import-world "data/terrainWithFlows/BlockC_module2_flows world.csv"
+						
+						;;; reduce patch size in pixels
+						set-patch-size 3
+						
+						end
+
+						...
+
+						```
+
+						---
+						## 27.6 Visualisation
+
+						Finally, we need to include visualisation procedures for the new variables:
+
+						```NetLogo
+						to refresh-view
+						
+						if (display-mode = "elevation")
+						[
+							ask patchesWithElevationData [ display-elevation ]
+						]
+
+						if (display-mode = "albedo")
+						[
+							ask patchesWithElevationData [ display-albedo ]
+						]
+
+						if (display-mode = "ETr")
+						[
+							let maxETr max [ETr] of patchesWithElevationData
+							ask patchesWithElevationData [ display-ETr maxETr ]
+						]
+
+						if (display-mode = "drainage coefficient (DC)")
+						[
+							ask patchesWithElevationData [ display-DC ]
+						]
+
+						if (display-mode = "root zone depth (z)")
+						[
+							let maxZ max [z] of patchesWithElevationData
+							ask patchesWithElevationData [ display-z maxZ ]
+						]
+
+						if (display-mode = "runoff curve number (CN)")
+						[
+							let maxCN max [CN] of patchesWithElevationData
+							ask patchesWithElevationData [ display-CN maxCN ]
+						]
+
+						if (display-mode = "water content at field capacity (FC)")
+						[
+							let maxFC max [FC] of patchesWithElevationData
+							ask patchesWithElevationData [ display-FC maxFC ]
+						]
+
+						if (display-mode = "water holding Capacity (WHC)")
+						[
+							let maxWHC max [WHC] of patchesWithElevationData
+							ask patchesWithElevationData [ display-WHC maxWHC ]
+						]
+
+						if (display-mode = "soil water content (WATp)")
+						[
+							let maxWATp max [WATp] of patchesWithElevationData
+							ask patchesWithElevationData [ display-WATp maxWATp ]
+						]
+
+						if (display-mode = "ARID coefficient")
+						[
+							ask patchesWithElevationData [ display-arid ]
+						]
+
+						end
+
+						to display-elevation
+
+						let elevationGradient 100 + (155 * (elevation / maxElevation))
+						set pcolor rgb (elevationGradient - 100) elevationGradient 0
+
+						end
+
+						to display-albedo
+
+						set pcolor 1 + 9 * albedo
+
+						end
+
+						to display-ETr [ maxETr ]
+
+						ifelse (maxETr = 0)
+						[ set pcolor 25 ]
+						[ set pcolor 22 + 6 * (1 - ETr / maxETr) ]
+
+						end
+
+						to display-DC
+
+						set pcolor 112 + 6 * (1 - DC)
+
+						end
+
+						to display-z [ maxZ ]
+
+						set pcolor 42 + 8 * (1 - z / maxZ)
+
+						end
+
+						to display-CN [ maxCN ]
+
+						set pcolor 72 + 6 * (1 - CN / maxCN)
+
+						end
+
+						to display-FC [ maxFC ]
+
+						set pcolor 82 + 6 * (1 - FC / maxFC)
+
+						end
+
+						to display-WHC [ maxWHC ]
+
+						set pcolor 92 + 6 * (1 - WHC / maxWHC)
+
+						end
+
+						to display-WATp [ maxWATp ]
+
+						set pcolor 102 + 6 * (1 - WATp / maxWATp)
+
+						end
+
+						to display-ARID
+
+						set pcolor 12 + 6 * ARID
+
+						end
+						```
+
+						---
+						## 27.7 Combining with flow accumulation algorithm
+
+						Lastly, we can include the ARID calculation in the main simulation loop, and modify ARID based on flow accumulation:
+
+						```NetLogo
+						patches-own
+						[
+						...
+
+						ARID_modifier ; modifier coefficient based on the relative value of flow_accumulation
+						]
+
+						...
+
+						to setup
+
+						clear-all
+
+						; --- loading/testing parameters -----------
+
+						import-map-with-flows ; import-world must be the first step
+
+						set-constants
+
+						set-parameters
+
+						setup-patches
+
+						; --- core procedures ----------------------
+
+						set currentYear weatherInputData_firstYear
+						set currentDayOfYear 1
+
+						;;; values are taken from input data
+						set-day-weather-from-input-data currentDayOfYear currentYear
+
+						ask patchesWithElevationData [ update-WAT ]
+
+						; --- display & output handling ------------------------
+
+						refresh-view
+
+						; -- time -------------------------------------
+
+						reset-ticks
+
+						end
+
+						...
+
+						to setup-patches
+
+						setup-soil-water-properties
+						
+						setup-ARID-modifier
+
+						end
+
+						...
+
+						to setup-ARID-modifier
+						
+						ask patchesWithElevationData
+						[
+							set ARID_modifier (1 - ARID-decrease-per-flow-accumulation * (flow_accumulation / maxFlowAccumulation))
+						]
+						
+						end
+
+						...
+
+						to go
+
+						; --- core procedures -------------------------
+
+						;;; values are taken from input data
+						set-day-weather-from-input-data currentDayOfYear currentYear
+
+						ask patchesWithElevationData [ update-WAT modify-ARID ]
+
+						; --- output handling ------------------------
+
+						refresh-view
+
+						; -- time -------------------------------------
+
+						advance-time
+
+						tick
+
+						; --- stop conditions -------------------------
+
+						if (currentYear = weatherInputData_lastYear and currentDayOfYear = last weatherInputData_yearLengthInDays) [stop]
+
+						end
+
+						...
+
+						to modify-ARID
+
+						set ARID ARID * ARID_modifier
+
+						end
+						```
+
+						---
+						## 27.8 Checking the milestone File (module 4)
+
+						<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockC_module4_ARID interface_tick100.png?raw=true" alt="Messara Trade module 4 (tick 100)" width="800">
+
+						---
+						## 27.8 Checking the milestone File (module 4) (continued)
+
+						<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockC_module4_ARID interface_tick150.png?raw=true" alt="Messara Trade module 4 (tick 150)" width="800">
+						
+						---
+						## 27.8 Checking the milestone File (module 4) (continued)
+
+						<img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockC_module4_ARID interface_tick200.png?raw=true" alt="Messara Trade module 4 (tick 200)" width="800">
+						
 
 					</textarea>
 				</section>
