@@ -21,13 +21,377 @@
 			<div class="slides">
 				<section data-markdown>
 					<textarea data-template>
-						# 15 Conceptual design or modeling
-						### the Pond Trade model
+						# 28 Scaling up route calculation
 
 						---
-						## 15.1 Starting with models as references
-						### **Example: Reusing the Pond Trade Model**
+						## 28.1 Adapting A* to use a path cost gradient 
 						
+						```NetLogo
+						to assign-path-cost
+
+						ask patches with [elevation = noElevationDataTag] [ set pathCost 9999 ] ;;; this makes routes crossing patches with no elevation data extremely unlikely
+
+						ask patchesWithElevationData
+						[
+							let myValidNeighborsAndI (patch-set self (neighbors with [elevation > noElevationDataTag]))
+
+							ifelse (count myValidNeighborsAndI > 1)
+							[
+							set pathCost standard-deviation [elevation] of myValidNeighborsAndI
+							]
+							[
+							set pathCost 1
+							]
+						]
+
+						end
+						```
+
+						---
+						## 28.2 Implementing file export-import procedures
+						### a solution to handle a larger grid
+
+						```
+						to export-routes-to-file
+
+						;;; build a unique file name to identify current setting
+						let filePath (word "data/routes/routes_" simulation-period "_w=" world-width "_h=" world-height "_randomSeed=" randomSeed ".txt")
+
+						file-open filePath
+
+						foreach routes
+						[
+							aRoute ->
+
+							file-print aRoute
+						]
+
+						file-close
+
+						end
+
+						to import-routes-from-file
+
+						;;; get unique file name corresponding to the current setting
+						let filePath (word "data/routes/routes_" simulation-period "_w=" world-width "_h=" world-height "_randomSeed=0.txt")
+
+						ifelse (not file-exists? filePath)
+						[ print (word "WARNING: could not find '" filePath "'") stop ] ;;; unfortunately the stop command doesn't stop the setup procedure
+						[
+							file-open filePath
+
+							set routes []
+
+							while [not file-at-end?]
+							[
+							let lineString file-read-line
+							set lineString remove-item 0 lineString
+							set lineString remove-item (length lineString - 1) lineString
+							set lineString (word "(list " lineString " )")
+
+							set routes lput (run-result lineString) routes
+							]
+						]
+
+						file-close
+
+						end
+						```
+
+						<small>The terrain data is already imported using `export-world`/`import-world`. Therefore, it is wiser to keep routes in a separate file.</small>
+						
+						---
+						## 28.3 Run and export routes
+
+						**Beware:** depending on the size of the grid and the number of routes to be calculated, this process may take a long time (several hours).
+
+						| | |
+						| --- | --- |
+						| <img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockC_module5_routes interface-EMIII-MMIA.png" alt="Screenshot of the 'routes' module displaying routes between EMIII-MMIA sites"> | <img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockC_module5_routes interface-MMIB.png" alt="Screenshot of the 'routes' module displaying routes between MMIB sites"> |
+
+						<small>Leave `import-routes` on to visualise the routes already calculated and saved in the repository.</small>
+
+						---
+						## 28.4 Pause for interpretation
+
+						| | |
+						| --- | --- |
+						| <img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockC_module5_routes interface-EMIII-MMIA.png" alt="Screenshot of the 'routes' module displaying routes between EMIII-MMIA sites"> | <img src="https://codarchlab-abm.github.io/course-guide/assets/screenshots/BlockC_module5_routes interface-MMIB.png" alt="Screenshot of the 'routes' module displaying routes between MMIB sites"> |
+
+						<small>Do the calculated routes make sense? Are there any patterns emerging?</small>
+						<small>WARNING: the A* algorithm does not run a simulation, it offers an atemporal spatial fact by iterating a process where path cost is the only factor considered.</small>
+
+						---
+						# 29 Integrating complex submodels
+
+						---
+						## 29.1 Integrating module 4 (ARID) and 5 (routes)
+
+						```NetLogo
+						globals
+						[
+						...
+
+						routes
+
+						...
+						]
+
+						...
+
+						to setup
+
+						clear-all
+
+						; --- loading/testing parameters -----------
+
+						import-map-with-flows ; import-world must be the first step
+
+						set-constants
+
+						set-parameters
+
+						import-routes-from-file
+
+						; --- core procedures ----------------------
+
+						set currentYear weatherInputData_firstYear
+						set currentDayOfYear 1
+
+						;;; values are taken from input data
+						set-day-weather-from-input-data currentDayOfYear currentYear
+
+						ask patchesWithElevationData [ update-WAT ]
+
+						; --- display & output handling ------------------------
+
+						update-output
+						
+						refresh-view
+
+						paint-routes
+
+						; -- time -------------------------------------
+
+						reset-ticks
+
+						end
+
+						...
+
+						to refresh-view
+
+						...
+
+						paint-routes
+						paint-active-routes
+
+						end
+
+
+						to paint-routes
+
+						;;; define list of shades of red in NetLogo
+						let redShades (list 11 12 13 14 15 16 17 18 19)
+						;;; NOTE: this is needed because rgb colors based on elevation are a list
+						;;; while NetLogo color are numbers
+
+						; resets route patches to the terrain color
+						foreach routes
+						[ ?1 ->
+							let aRoute ?1
+
+							foreach aRoute
+							[ ??1 ->
+							ask ??1 [ display-elevation ]
+							]
+						]
+
+						; paint route patches in shades of red depending on route frequency
+						foreach routes
+						[ ?1 ->
+							let aRoute ?1
+
+							foreach aRoute
+							[ ??1 ->
+							ask ??1
+							[
+								if (showRoutes)
+								[
+								ifelse (not member? pcolor redShades) ; if its the first route crossing the patch
+								[
+									set pcolor 11
+								]
+								[
+									set pcolor min (list (pcolor + 1) (19)) ; sets a maximum at 19 (the brightest)
+								]
+								]
+							]
+							]
+						]
+
+						end
+
+						to paint-active-routes
+
+						ask traders
+						[
+							foreach route
+							[ ?1 ->
+							ask ?1
+							[
+								ifelse (showActiveRoutes)
+								[
+								set pcolor yellow
+								]
+								[
+								if (not showRoutes) ; if not displaying all routes
+								[
+									; resets to the patch terrain color
+									display-elevation
+								]
+								]
+							]
+							]
+						]
+
+						end
+
+						```
+
+						<small>We must also bring all the relevant GUI elements (Widgets) into the model. Remember, in NetLogo, you may copy and paste code from the GUI into the code editor.</small>
+						---
+						## 29.2 Integrating Pond Trade (step 13)
+
+						Modifications required:
+
+						- No `isLand` variable  
+						- No `relativePathCostInLand` or `relativePathCostInPort` variables
+
+						After bringing all the relevant procedures, we carefully organise the scheduling of calls in `setup` and `go`:
+
+						```NetLogo
+						to setup
+
+						clear-all
+						reset-ticks
+
+						; set the random seed so we can reproduce the same experiment
+						random-seed seed
+						set patchesCount count patches
+
+						create-map
+
+						create-coastal-settlements
+
+						set-routes
+
+						create-traders-per-settlement
+
+						update-output
+
+						update-display
+
+						update-plots
+
+						end
+
+						...
+
+						to go
+
+						tick
+
+						if (ticks = 10000 or count turtles > 500) [ stop ]
+
+						update-traders
+
+						update-settlements
+
+						update-output
+
+						update-display
+
+						end
+						```
+
+						---
+						## 29.3 ARID as a factor of settlement productivity
+
+						New variable for settlements:
+
+						- `catchmentArea`: the area around a settlement that can be exploited for resources, determined with a gradient function dependent on `sizeLevel` and two parameters, `catchmentSlope` and `catchmentRadiusMaximum`.  
+						- `ARIDinCatchmentArea`: the average ARID value of all patches within the `catchmentArea`.  
+
+						```NetLogo
+						settlements-own
+						[
+						...
+						catchmentArea
+						ARIDinCatchmentArea
+						]
+
+						...
+
+						to update-settlements
+
+						ask settlements
+						[
+							let thisSettlement self
+
+							; the sizeLevel of settlements decays with a constant rate, up to 1 (minimum)
+							set sizeLevel max (list 1 (sizeLevel * (1 - ((item 5 culturalVector) / 100)) ) )
+							; production in stock also decays with a constant rate
+							set stock stock * (1 - ((item 6 culturalVector) / 100))
+							; prodution is generated in proportion to sizeLevel, following a constant rate and the average ARID within the settlement catchment area
+							update-ARIDinCatchmentArea
+							update-catchmentArea
+							set stock stock + sizeLevel * ((item 7 culturalVector) / 100) * ARIDinCatchmentArea
+
+							...
+						]
+
+						end
+
+						...
+
+						to update-ARIDinCatchmentArea
+						
+						let patchesInCatchmentArea patches in-radius catchmentArea
+						
+						ifelse (count patchesInCatchmentArea = 1)
+						[ set ARIDinCatchmentArea [ARID] of patch-here ]
+						[ set ARIDinCatchmentArea mean [ARID] of patchesInCatchmentArea]
+						
+						end
+
+						to update-catchmentArea
+						
+						set catchmentArea get-value-in-gradient sizeLevel catchmentSlope catchmentRadiusMaximum
+						
+						end
+
+						to-report get-value-in-gradient [ input gradient maximum ]
+
+						report e ^ ( - input / ((gradient / 100) * maximum) )
+
+						end
+						```
+
+						<small>Make sure to adjust the GUI elements accordingly.</small>
+
+						---
+						## 29.4 Checking the milestone File (module 6)
+
+						Run the model a few times, observing global and agent variables. Is there something off about how the new version is running? 
+
+						Think about the case study and the mechanisms targeted by the original Pond Trade model. What aspects do you find problematic?
+
+						---
+						# Verifying and improving
+
+						Work on the challenges posed in the course guide.
+
 					</textarea>
 				</section>
 			</div>
